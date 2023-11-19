@@ -1,8 +1,10 @@
 import { InvalidHpmrcFileError } from './errors/invalidHpmrcFileError.exception';
-import { InvalidHpmrcKeyError } from './errors/invalidHpmrcKeyError.exception';
 import type { BunFile } from 'bun';
 
 const runtimeConfigurationKeys: Array<keyof RuntimeConfiguration> = ['gitHubToken'];
+
+export const isRuntimeConfigurationKey = (key: unknown): key is keyof RuntimeConfiguration =>
+    typeof key === 'string' && runtimeConfigurationKeys.includes(key as keyof RuntimeConfiguration);
 
 export interface RuntimeConfiguration {
     gitHubToken?: string;
@@ -50,16 +52,12 @@ export class RuntimeConfigurationService {
         return {};
     }
 
-    public async getRuntimeConfigurationKey(key: string): Promise<string | undefined> {
-        // TODO: fix return type
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (!runtimeConfigurationKeys.includes(key as any)) {
-            throw new InvalidHpmrcKeyError(key);
-        }
-
+    public async getRuntimeConfigurationKey<T extends keyof RuntimeConfiguration>(
+        key: T,
+    ): Promise<RuntimeConfiguration[T] | undefined> {
         const runtimeConfiguration = await this.getRuntimeConfiguration();
 
-        return runtimeConfiguration[key as keyof RuntimeConfiguration];
+        return runtimeConfiguration[key];
     }
 
     private static instance: RuntimeConfigurationService;
@@ -68,14 +66,12 @@ export class RuntimeConfigurationService {
 
     private readonly runtimeConfigurationFile: BunFile;
 
-    public async setRuntimeConfigurationKey(key: string, value: string): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (!runtimeConfigurationKeys.includes(key as any)) {
-            throw new InvalidHpmrcKeyError(key);
-        }
-
+    public async setRuntimeConfigurationKey(
+        key: keyof RuntimeConfiguration,
+        value: string,
+    ): Promise<void> {
         const runtimeConfiguration = await this.getRuntimeConfiguration();
-        runtimeConfiguration[key as keyof RuntimeConfiguration] = value;
+        runtimeConfiguration[key] = value;
 
         await Bun.write(
             this.runtimeConfigurationFile,

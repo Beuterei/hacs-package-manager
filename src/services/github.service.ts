@@ -123,7 +123,6 @@ export class GitHubService {
         const jsonResponse = await response.json();
 
         if (
-            // TODO: extract this to a function
             !Array.isArray(jsonResponse) ||
             jsonResponse.length === 0 ||
             !jsonResponse[0].object.sha ||

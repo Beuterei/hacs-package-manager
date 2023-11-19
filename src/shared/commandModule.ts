@@ -10,7 +10,7 @@ export interface OptionsObject {
 
 export interface ModifiedCommandModule<
     // generic to pass down inherit types
-    ExtendArgs extends ArgsObject,
+    ExtendArgs extends Partial<ArgsObject>,
     ExtendOptions extends OptionsObject,
     // extend the command module but omit builder and handler to put in our inherited types
     // also omit command and describe to make them required
@@ -42,7 +42,7 @@ export const registerCommandModule =
         <ExtendArgs extends ArgsObject = {}>() =>
         <ExtendOptions extends OptionsObject>(
             // require a module object and inherit the types
-            module: ModifiedCommandModule<ExtendArgs, ExtendOptions>,
+            module: ModifiedCommandModule<Partial<ExtendArgs>, ExtendOptions>,
             // reexport the module because this just do some magic with parameter types
         ) =>
             module;

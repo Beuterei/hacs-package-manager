@@ -1,10 +1,13 @@
-import { RuntimeConfigurationService } from '../services/runtime-configuration.service';
+import {
+    isRuntimeConfigurationKey,
+    RuntimeConfigurationService,
+} from '../services/runtime-configuration.service';
 import { registerCommandModule } from '../shared/commandModule';
 import { resolveBusinessException } from '../util/exception.helper';
 
 export default registerCommandModule<{
-    command?: string;
-    options?: string[];
+    command: string;
+    options: string[];
 }>()({
     command: 'config [command] [options..]',
     describe: 'Configure the CLI',
@@ -27,6 +30,11 @@ export default registerCommandModule<{
                     process.exit(1);
                 }
 
+                if (!isRuntimeConfigurationKey(key)) {
+                    console.log('\u001B[31mInvalid config key.\u001B[0m');
+                    process.exit(1);
+                }
+
                 const runtimeConfigurationService = RuntimeConfigurationService.getInstance();
 
                 await runtimeConfigurationService.setRuntimeConfigurationKey(key, value);
@@ -41,6 +49,11 @@ export default registerCommandModule<{
                 if (key === undefined) {
                     console.log(await runtimeConfigurationService.getRuntimeConfiguration());
                     process.exit(0);
+                }
+
+                if (!isRuntimeConfigurationKey(key)) {
+                    console.log('\u001B[31mInvalid config key.\u001B[0m');
+                    process.exit(1);
                 }
 
                 const value = await runtimeConfigurationService.getRuntimeConfigurationKey(key);

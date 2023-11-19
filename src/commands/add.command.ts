@@ -5,7 +5,7 @@ import { resolveBusinessException } from '../util/exception.helper';
 import { Spinner } from '../util/spinner.helper';
 
 export default registerCommandModule<{
-    dependencies?: string[]; // TODO: Fix that this is allowed to be not undefined
+    dependencies: string[];
 }>()({
     command: 'add [dependencies..]',
     describe: 'Adds a particular package to home assistant',

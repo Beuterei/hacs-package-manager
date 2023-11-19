@@ -48,7 +48,6 @@ export class DependencyService {
     }
 
     public async getHacsConfig(repositorySlug: string, ref: string): Promise<HacsConfig> {
-        // TODO: Handle not found error
         const hacsConfigResponse = await this.gitHubService.fetchFile(
             repositorySlug,
             'hacs.json',
