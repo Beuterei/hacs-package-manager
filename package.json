@@ -1,0 +1,22 @@
+{
+  "name": "hacs-package-manager",
+  "module": "src/hpm.ts",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@beuluis/eslint-config": "^2.0.1",
+    "@types/yargs": "^17.0.29",
+    "bun-types": "latest",
+    "eslint": "^8.53.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "dependencies": {
+    "yargs": "17.7.2"
+  }
+}

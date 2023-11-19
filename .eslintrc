@@ -1,0 +1,34 @@
+{
+    "extends": ["@beuluis/eslint-config"],
+    "root": true,
+    "overrides": [
+        {
+            "extends": ["@beuluis/eslint-config/typescript"],
+            "files": "*.ts",
+            "parserOptions": {
+                "project": "tsconfig.json"
+            },
+            "rules": {
+                "no-console": "off",
+                "no-alert": "off"
+            }
+        },
+        {
+            "extends": ["@beuluis/eslint-config/json"],
+            "files": "*.json"
+        },
+        {
+            "extends": ["@beuluis/eslint-config/yaml"],
+            "files": "*.{yml,yaml}"
+        },
+        {
+            // TODO: check with bun
+            "extends": ["@beuluis/eslint-config/jest"],
+            "files": [
+                "*.?(component-){spec,test}.ts",
+                "**/{__mocks__,__tests__}/**/*.ts",
+                "**/jest.setup.ts"
+            ]
+        }
+    ]
+}

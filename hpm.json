@@ -1,0 +1,9 @@
+{
+  "3ative/3ative-blue-theme": {
+    "ref": "v1.7.2",
+    "refType": "tag",
+    "hacsConfig": {
+      "name": "3Ative Blue Theme"
+    }
+  }
+}
