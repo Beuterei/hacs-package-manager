@@ -71,11 +71,15 @@ export class GitHubService {
         private runtimeConfigurationService = RuntimeConfigurationService.getInstance(),
     ) {}
 
-    private async fetchContentAPI(
-        repositorySlug: string,
-        path: string,
-        ref?: string,
-    ): Promise<GitHubContentDirectoryList | GitHubContentFile> {
+    private async fetchContentAPI({
+        repositorySlug,
+        path,
+        ref,
+    }: {
+        path: string;
+        ref?: string;
+        repositorySlug: string;
+    }): Promise<GitHubContentDirectoryList | GitHubContentFile> {
         const refQuery = ref ? `?ref=${ref}` : '';
         const response = await fetch(
             `https://api.github.com/repos/${repositorySlug}/contents/${path}${refQuery}`,
@@ -103,12 +107,16 @@ export class GitHubService {
         return jsonResponse;
     }
 
-    public async fetchFile(
-        repositorySlug: string,
-        filePath: string,
-        ref?: string,
-    ): Promise<GitHubContentFile> {
-        const contentBaseTypeResponse = await this.fetchContentAPI(repositorySlug, filePath, ref);
+    public async fetchFile({
+        repositorySlug,
+        path,
+        ref,
+    }: {
+        path: string;
+        ref?: string;
+        repositorySlug: string;
+    }): Promise<GitHubContentFile> {
+        const contentBaseTypeResponse = await this.fetchContentAPI({ repositorySlug, path, ref });
 
         if (isGitHubContentFile(contentBaseTypeResponse)) {
             return contentBaseTypeResponse;
@@ -144,16 +152,16 @@ export class GitHubService {
         return jsonResponse[0].sha;
     }
 
-    public async listDirectory(
-        repositorySlug: string,
-        directoryPath: string,
-        ref?: string,
-    ): Promise<GitHubContentDirectoryList> {
-        const ContentBaseTypeResponse = await this.fetchContentAPI(
-            repositorySlug,
-            directoryPath,
-            ref,
-        );
+    public async listDirectory({
+        repositorySlug,
+        path,
+        ref,
+    }: {
+        path: string;
+        ref: string;
+        repositorySlug: string;
+    }): Promise<GitHubContentDirectoryList> {
+        const ContentBaseTypeResponse = await this.fetchContentAPI({ repositorySlug, path, ref });
 
         if (!isGitHubContentDirectoryList(ContentBaseTypeResponse)) {
             throw new InvalidGitHubResponseError(repositorySlug, ref);
@@ -162,12 +170,18 @@ export class GitHubService {
         return ContentBaseTypeResponse;
     }
 
-    public async matchRef(repositorySlug: string, ref: string): Promise<MatchedRef> {
+    public async matchRef({
+        repositorySlug,
+        unresolvedRef,
+    }: {
+        repositorySlug: string;
+        unresolvedRef: string;
+    }): Promise<MatchedRef> {
         const tryResolveRef = async (
             typeToCheckFor: 'tag' | 'commit' | 'head',
         ): Promise<MatchedRef | undefined> => {
             const response = await fetch(
-                `https://api.github.com/repos/${repositorySlug}/git/matching-refs/${typeToCheckFor}s/${ref}`,
+                `https://api.github.com/repos/${repositorySlug}/git/matching-refs/${typeToCheckFor}s/${unresolvedRef}`,
                 {
                     headers: {
                         Authorization: `token ${await this.runtimeConfigurationService.getRuntimeConfigurationKey(
@@ -181,7 +195,7 @@ export class GitHubService {
             const jsonResponse = await response.json();
 
             if (!Array.isArray(jsonResponse)) {
-                throw new InvalidGitHubResponseError(repositorySlug, ref);
+                throw new InvalidGitHubResponseError(repositorySlug, unresolvedRef);
             }
 
             if (
@@ -200,7 +214,7 @@ export class GitHubService {
 
         const resolveCommitRef = async (): Promise<MatchedRef | undefined> => {
             const response = await fetch(
-                `https://api.github.com/repos/${repositorySlug}/commits/${ref}`,
+                `https://api.github.com/repos/${repositorySlug}/commits/${unresolvedRef}`,
                 {
                     headers: {
                         Authorization: `token ${await this.runtimeConfigurationService.getRuntimeConfigurationKey(
@@ -232,15 +246,19 @@ export class GitHubService {
             return matchedRef;
         }
 
-        throw new InvalidRefTypeError(repositorySlug, ref);
+        throw new InvalidRefTypeError(repositorySlug, unresolvedRef);
     }
 
-    public async resolveDirectoryRecursively(
-        repositorySlug: string,
-        ref: string,
-        directoryPath: string,
-    ): Promise<string[]> {
-        const directoryListResponse = await this.listDirectory(repositorySlug, directoryPath, ref);
+    public async resolveDirectoryRecursively({
+        repositorySlug,
+        path,
+        ref,
+    }: {
+        path: string;
+        ref: string;
+        repositorySlug: string;
+    }): Promise<string[]> {
+        const directoryListResponse = await this.listDirectory({ repositorySlug, path, ref });
 
         let allFiles: string[] = [];
 
@@ -248,11 +266,11 @@ export class GitHubService {
             if (isGitHubContentListFileItem(item)) {
                 allFiles.push(item.path);
             } else if (isGitHubContentListDirectoryItem(item)) {
-                const subDirectoryFiles = await this.resolveDirectoryRecursively(
+                const subDirectoryFiles = await this.resolveDirectoryRecursively({
                     repositorySlug,
                     ref,
-                    item.path,
-                );
+                    path: item.path,
+                });
                 allFiles = allFiles.concat(subDirectoryFiles);
             }
         }

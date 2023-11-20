@@ -18,7 +18,7 @@ export class DependencyService {
 
         const hacsConfig = await this.getHacsConfig(repositorySlug, ref);
 
-        const files = await this.getToDownloadFiles(repositorySlug, ref, category);
+        const files = await this.getToDownloadFiles(repositorySlug, ref, category, hacsConfig);
 
         const hpmDependency: HpmDependency = {
             ref,
@@ -66,11 +66,11 @@ export class DependencyService {
     }
 
     public async getHacsConfig(repositorySlug: string, ref: string): Promise<HacsConfig> {
-        const hacsConfigResponse = await this.gitHubService.fetchFile(
+        const hacsConfigResponse = await this.gitHubService.fetchFile({
             repositorySlug,
-            'hacs.json',
+            path: 'hacs.json',
             ref,
-        );
+        });
 
         const parsedHacsConfig = JSON.parse(atob(hacsConfigResponse.content));
 
@@ -92,7 +92,7 @@ export class DependencyService {
             };
         }
 
-        const matchedRef = await this.gitHubService.matchRef(repositorySlug, unresolvedRef);
+        const matchedRef = await this.gitHubService.matchRef({ repositorySlug, unresolvedRef });
         if (matchedRef.matchedRefType === 'head') {
             return {
                 ref: await this.gitHubService.fetchLatestCommit(repositorySlug),
@@ -107,19 +107,36 @@ export class DependencyService {
         repositorySlug: string,
         ref: string,
         category: HpmDependency['category'],
+        hacsConfig: HpmDependency['hacsConfig'],
     ): Promise<string[]> {
         if (category === 'theme') {
-            const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively(
+            const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
                 repositorySlug,
                 ref,
-                'themes',
-            );
+                path: 'themes',
+            });
 
             if (directoryListResponse.length === 0) {
                 throw new Error('No theme files found.');
             }
 
             return directoryListResponse;
+        }
+
+        if (category === 'template') {
+            const filename = hacsConfig.filename;
+
+            if (!filename) {
+                throw new Error('No template files found.');
+            }
+
+            const jinjaFile = await this.gitHubService.fetchFile({
+                repositorySlug,
+                path: filename,
+                ref,
+            });
+
+            return [jinjaFile.path];
         }
 
         return [];
