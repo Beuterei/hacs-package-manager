@@ -19,13 +19,18 @@ export default registerCommandModule<{
 
         for (const [, dependency] of Object.entries(dependencies)) {
             const spinner = new Spinner();
-            spinner.start(`Adding \u001B[36m${dependency}\u001B[0m...`);
 
             try {
                 const [repositorySlug, unresolvedRef] = dependency.split('@') as [
                     string,
                     string | undefined,
                 ];
+
+                spinner.start(
+                    `Adding \u001B[36m${repositorySlug}${
+                        unresolvedRef ? `\u001B[37m@\u001B[35m${unresolvedRef}` : ''
+                    }\u001B[0m...`,
+                );
 
                 const hpmDependency = await dependencyService.addDependency(
                     repositorySlug,
@@ -37,7 +42,9 @@ export default registerCommandModule<{
                         ? hpmDependency.ref.slice(0, 8)
                         : hpmDependency.ref;
 
-                spinner.done(`Added \u001B[36m'${repositorySlug}@${refString}'\u001B[0m.`);
+                spinner.done(
+                    `Added \u001B[36m'${repositorySlug}\u001B[37m@\u001B[35m${refString}'\u001B[0m.`,
+                );
             } catch (error) {
                 spinner.fail(resolveBusinessException(error));
 

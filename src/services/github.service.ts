@@ -25,6 +25,15 @@ interface GitHubContentFile {
     type: 'file';
 }
 
+interface GitHubReleaseArtifact {
+    browser_download_url: string;
+    name: string;
+}
+
+interface GitHubRelease {
+    assets: GitHubReleaseArtifact[];
+}
+
 interface MatchedRef {
     matchedRef: string;
     matchedRefType: 'tag' | 'commit' | 'head';
@@ -66,6 +75,21 @@ const isGitHubContentFile = (object: unknown): object is GitHubContentFile =>
     'type' in object &&
     object.type === 'file';
 
+const isGitHubReleaseArtifact = (object: unknown): object is GitHubReleaseArtifact =>
+    typeof object === 'object' &&
+    object !== null &&
+    'browser_download_url' in object &&
+    typeof object.browser_download_url === 'string' &&
+    'name' in object &&
+    typeof object.name === 'string';
+
+const isGitHubRelease = (object: unknown): object is GitHubRelease =>
+    typeof object === 'object' &&
+    object !== null &&
+    'assets' in object &&
+    Array.isArray(object.assets) &&
+    object.assets.every(asset => isGitHubReleaseArtifact(asset));
+
 export class GitHubService {
     public constructor(
         private runtimeConfigurationService = RuntimeConfigurationService.getInstance(),
@@ -100,7 +124,6 @@ export class GitHubService {
         const jsonResponse = await response.json();
 
         if (!isGitHubContentFile(jsonResponse) && !isGitHubContentDirectoryList(jsonResponse)) {
-            console.log(jsonResponse);
             throw new InvalidGitHubResponseError(repositorySlug, ref);
         }
 
@@ -150,6 +173,46 @@ export class GitHubService {
         }
 
         return jsonResponse[0].sha;
+    }
+
+    public async fetchReleaseArtifact({
+        repositorySlug,
+        path,
+        ref,
+    }: {
+        path: string;
+        ref: string;
+        repositorySlug: string;
+    }): Promise<GitHubReleaseArtifact> {
+        const response = await fetch(
+            `https://api.github.com/repos/${repositorySlug}/releases/tags/${ref}`,
+            {
+                headers: {
+                    Authorization: `token ${await this.runtimeConfigurationService.getRuntimeConfigurationKey(
+                        'gitHubToken',
+                    )}`,
+                    Accept: 'application/vnd.github+json',
+                },
+            },
+        );
+
+        if (!response.ok) {
+            throw new HttpExceptionError(response.statusText, repositorySlug, path, ref);
+        }
+
+        const jsonResponse = await response.json();
+
+        if (!isGitHubRelease(jsonResponse)) {
+            throw new InvalidGitHubResponseError(repositorySlug, ref);
+        }
+
+        const foundAsset = jsonResponse.assets.find(asset => asset.name === path);
+
+        if (!foundAsset) {
+            throw new Error(`No asset found for '${path}'.`);
+        }
+
+        return foundAsset;
     }
 
     public async listDirectory({

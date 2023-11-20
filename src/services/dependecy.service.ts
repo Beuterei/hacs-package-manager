@@ -14,18 +14,25 @@ export class DependencyService {
     ): Promise<HpmDependency> {
         const category = await this.getCategory(repositorySlug);
 
-        const { ref, refType } = await this.getRefAndType(repositorySlug, unresolvedRef);
+        const { ref, refType, resolvedFromDefaultBranch } = await this.getRefAndType(
+            repositorySlug,
+            unresolvedRef,
+        );
 
         const hacsConfig = await this.getHacsConfig(repositorySlug, ref);
 
-        const files = await this.getToDownloadFiles(repositorySlug, ref, category, hacsConfig);
+        if (resolvedFromDefaultBranch && (hacsConfig.hideDefaultBranch || hacsConfig.zipRelease)) {
+            throw new Error(
+                `The default branch of '${repositorySlug}' is hidden or a zip release is used. Please provide a release tag instead.`,
+            );
+        }
 
         const hpmDependency: HpmDependency = {
             ref,
             refType,
             category,
-            files,
             hacsConfig,
+            ...(await this.resolveDependencyFiles(repositorySlug, ref, category, hacsConfig)),
         };
 
         const dependencyFile = Bun.file('hpm.json');
@@ -84,11 +91,12 @@ export class DependencyService {
     public async getRefAndType(
         repositorySlug: string,
         unresolvedRef?: string,
-    ): Promise<{ ref: string; refType: 'tag' | 'commit' }> {
+    ): Promise<{ ref: string; refType: 'tag' | 'commit'; resolvedFromDefaultBranch?: true }> {
         if (!unresolvedRef) {
             return {
                 ref: await this.gitHubService.fetchLatestCommit(repositorySlug),
                 refType: 'commit',
+                resolvedFromDefaultBranch: true, // Indicate that the ref was resolved from the default branch and not just a provided commit hash
             };
         }
 
@@ -103,12 +111,44 @@ export class DependencyService {
         return { refType: matchedRef.matchedRefType, ref: matchedRef.matchedRef };
     }
 
-    public async getToDownloadFiles(
+    public async resolveDependencyFiles(
         repositorySlug: string,
         ref: string,
         category: HpmDependency['category'],
         hacsConfig: HpmDependency['hacsConfig'],
-    ): Promise<string[]> {
+    ): Promise<{ files: string[] } | { releaseUrl: string }> {
+        if (hacsConfig.zipRelease) {
+            const releaseFileName = hacsConfig.filename;
+
+            if (!releaseFileName) {
+                throw new Error('No release file found.');
+            }
+
+            const releaseUrl = (
+                await this.gitHubService.fetchReleaseArtifact({
+                    repositorySlug,
+                    path: releaseFileName,
+                    ref,
+                })
+            ).browser_download_url;
+
+            return { releaseUrl };
+        }
+
+        if (category === 'appdaemon') {
+            const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
+                repositorySlug,
+                ref,
+                path: 'apps',
+            });
+
+            if (directoryListResponse.length === 0) {
+                throw new Error('No apps files found.');
+            }
+
+            return { files: directoryListResponse };
+        }
+
         if (category === 'theme') {
             const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
                 repositorySlug,
@@ -120,7 +160,7 @@ export class DependencyService {
                 throw new Error('No theme files found.');
             }
 
-            return directoryListResponse;
+            return { files: directoryListResponse };
         }
 
         if (category === 'template') {
@@ -136,9 +176,9 @@ export class DependencyService {
                 ref,
             });
 
-            return [jinjaFile.path];
+            return { files: [jinjaFile.path] };
         }
 
-        return [];
+        return { files: [] };
     }
 }

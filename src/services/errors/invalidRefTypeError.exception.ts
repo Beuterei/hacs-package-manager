@@ -2,7 +2,7 @@ import { TypeBusinessError } from './typeBusinessError.exception';
 
 export class InvalidRefTypeError extends TypeBusinessError {
     public constructor(repositorySlug: string, ref: string) {
-        super(`Ref '${ref}' is not a tag, commit, or head in ${repositorySlug}.`);
+        super(`For '${ref}' no matching tag, commit, or head in '${repositorySlug} was found'.`);
         this.name = 'InvalidRefTypeError';
     }
 }
