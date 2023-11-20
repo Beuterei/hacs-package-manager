@@ -38,6 +38,8 @@ export default registerCommandModule<{
                 const runtimeConfigurationService = RuntimeConfigurationService.getInstance();
 
                 await runtimeConfigurationService.setRuntimeConfigurationKey(key, value);
+
+                console.log('\u001B[32mConfig value updated.\u001B[0m');
                 process.exit(0);
             }
 
