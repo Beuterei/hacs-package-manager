@@ -1,6 +1,5 @@
 import { DependencyService } from '../services/dependecy.service';
 import { registerCommandModule } from '../shared/commandModule';
-import type { HpmDependency } from '../shared/hpm';
 import { resolveBusinessException } from '../util/exception.helper';
 import { Spinner } from '../util/spinner.helper';
 
@@ -28,22 +27,15 @@ export default registerCommandModule<{
                     string | undefined,
                 ];
 
-                const defaultsType = await dependencyService.getDefaultsType(repositorySlug);
-
-                const { ref, refType } = await dependencyService.getRefAndType(
+                const hpmDependency = await dependencyService.addDependency(
                     repositorySlug,
                     unresolvedRef,
                 );
 
-                const hpmDependency: HpmDependency = {
-                    ref,
-                    refType,
-                    hacsConfig: await dependencyService.getHacsConfig(repositorySlug, ref),
-                };
-
-                await dependencyService.addDependency(repositorySlug, hpmDependency);
-
-                const refString = refType === 'commit' ? ref.slice(0, 8) : ref;
+                const refString =
+                    hpmDependency.refType === 'commit'
+                        ? hpmDependency.ref.slice(0, 8)
+                        : hpmDependency.ref;
 
                 spinner.done(`Added \u001B[36m'${repositorySlug}@${refString}'\u001B[0m.`);
             } catch (error) {

@@ -22,11 +22,11 @@ export const isRemoteHacsConfig = (object: unknown): object is HacsConfig =>
     object !== null &&
     'name' in object &&
     typeof object.name === 'string' &&
-    ('content_in_root' in object ? typeof object.content_in_root === 'string' : true) &&
+    ('content_in_root' in object ? typeof object.content_in_root === 'boolean' : true) &&
     ('filename' in object ? typeof object.filename === 'string' : true) &&
-    ('hide_default_branch' in object ? typeof object.hide_default_branch === 'string' : true) &&
+    ('hide_default_branch' in object ? typeof object.hide_default_branch === 'boolean' : true) && // TODO: fail if true and no ref is provided
     ('persistent_directory' in object ? typeof object.persistent_directory === 'string' : true) &&
-    ('zip_release' in object ? typeof object.zip_release === 'string' : true);
+    ('zip_release' in object ? typeof object.zip_release === 'boolean' : true);
 
 export interface HacsConfig {
     contentInRoot?: boolean;

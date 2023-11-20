@@ -1,61 +1,70 @@
-// const typeFileLookup: { [key in keyof Defaults]: string[] } = {
-//     appdaemon: ['apps'],
-// };
-
 import { HttpExceptionError } from './errors/httpExceptionError.exception';
 import { InvalidGitHubResponseError } from './errors/invalidGitHubResponseError.exception';
 import { InvalidRefTypeError } from './errors/invalidRefTypeError.exception';
 import { RuntimeConfigurationService } from './runtime-configuration.service';
 
-interface GitHubContentBaseTypeResponse {
+interface GitHubContentListItemBase {
+    name: string;
     path: string;
 }
 
-interface GitHubContentFileTypeResponse extends GitHubContentBaseTypeResponse {
-    content: string;
-    type: 'file';
-}
-
-interface GitHubContentDirectoryTypeResponse extends GitHubContentBaseTypeResponse {
+interface GitHubContentListDirectoryItem extends GitHubContentListItemBase {
     type: 'dir';
 }
 
-type GitHubContentDirectoryListResponse = Array<
-    GitHubContentFileTypeResponse | GitHubContentDirectoryTypeResponse
->;
+interface GitHubContentListFileItem extends GitHubContentListItemBase {
+    type: 'file';
+}
+
+type GitHubContentDirectoryList = Array<GitHubContentListDirectoryItem | GitHubContentListFileItem>;
+
+interface GitHubContentFile {
+    content: string;
+    name: string;
+    path: string;
+    type: 'file';
+}
 
 interface MatchedRef {
     matchedRef: string;
     matchedRefType: 'tag' | 'commit' | 'head';
 }
 
-const isGitHubContentBaseTypeResponse = (
-    object: unknown,
-): object is GitHubContentBaseTypeResponse =>
+const isGitHubContentListItemBase = (object: unknown): object is GitHubContentListItemBase =>
     typeof object === 'object' &&
     object !== null &&
+    'name' in object &&
+    typeof object.name === 'string' &&
     'path' in object &&
     typeof object.path === 'string';
 
-const isGitHubContentFileTypeResponse = (
-    object: GitHubContentBaseTypeResponse,
-): object is GitHubContentFileTypeResponse =>
-    'content' in object &&
-    typeof object.content === 'string' &&
-    'type' in object &&
-    object.type === 'file';
+const isGitHubContentListDirectoryItem = (
+    object: GitHubContentListItemBase,
+): object is GitHubContentListDirectoryItem => 'type' in object && object.type === 'dir';
 
-const isGitHubContentDirectoryTypeResponse = (
-    object: GitHubContentBaseTypeResponse,
-): object is GitHubContentDirectoryTypeResponse => 'type' in object && object.type === 'file';
+const isGitHubContentListFileItem = (
+    object: GitHubContentListItemBase,
+): object is GitHubContentListFileItem => 'type' in object && object.type === 'file';
 
-const isGitHubContentDirectoryListResponse = (
-    object: unknown,
-): object is GitHubContentDirectoryListResponse =>
+const isGitHubContentDirectoryList = (object: unknown): object is GitHubContentDirectoryList =>
     Array.isArray(object) &&
     object.every(
-        item => isGitHubContentDirectoryTypeResponse(item) || isGitHubContentFileTypeResponse(item),
+        (item: unknown) =>
+            isGitHubContentListItemBase(item) &&
+            (isGitHubContentListDirectoryItem(item) || isGitHubContentListFileItem(item)),
     );
+
+const isGitHubContentFile = (object: unknown): object is GitHubContentFile =>
+    typeof object === 'object' &&
+    object !== null &&
+    'content' in object &&
+    typeof object.content === 'string' &&
+    'name' in object &&
+    typeof object.name === 'string' &&
+    'path' in object &&
+    typeof object.path === 'string' &&
+    'type' in object &&
+    object.type === 'file';
 
 export class GitHubService {
     public constructor(
@@ -66,7 +75,7 @@ export class GitHubService {
         repositorySlug: string,
         path: string,
         ref?: string,
-    ): Promise<GitHubContentBaseTypeResponse> {
+    ): Promise<GitHubContentDirectoryList | GitHubContentFile> {
         const refQuery = ref ? `?ref=${ref}` : '';
         const response = await fetch(
             `https://api.github.com/repos/${repositorySlug}/contents/${path}${refQuery}`,
@@ -81,13 +90,14 @@ export class GitHubService {
         );
 
         if (!response.ok) {
-            throw new HttpExceptionError(response.statusText);
+            throw new HttpExceptionError(response.statusText, repositorySlug, path, ref);
         }
 
         const jsonResponse = await response.json();
 
-        if (!isGitHubContentBaseTypeResponse(jsonResponse)) {
-            throw new InvalidGitHubResponseError();
+        if (!isGitHubContentFile(jsonResponse) && !isGitHubContentDirectoryList(jsonResponse)) {
+            console.log(jsonResponse);
+            throw new InvalidGitHubResponseError(repositorySlug, ref);
         }
 
         return jsonResponse;
@@ -97,19 +107,19 @@ export class GitHubService {
         repositorySlug: string,
         filePath: string,
         ref?: string,
-    ): Promise<GitHubContentFileTypeResponse> {
-        const ContentBaseTypeResponse = await this.fetchContentAPI(repositorySlug, filePath, ref);
+    ): Promise<GitHubContentFile> {
+        const contentBaseTypeResponse = await this.fetchContentAPI(repositorySlug, filePath, ref);
 
-        if (!isGitHubContentFileTypeResponse(ContentBaseTypeResponse)) {
-            throw new InvalidGitHubResponseError();
+        if (isGitHubContentFile(contentBaseTypeResponse)) {
+            return contentBaseTypeResponse;
         }
 
-        return ContentBaseTypeResponse;
+        throw new InvalidGitHubResponseError(repositorySlug, ref);
     }
 
     public async fetchLatestCommit(repositorySlug: string): Promise<string> {
         const response = await fetch(
-            `https://api.github.com/repos/${repositorySlug}/git/matching-refs/heads`,
+            `https://api.github.com/repos/${repositorySlug}/commits?per_page=1`,
             {
                 headers: {
                     Authorization: `token ${await this.runtimeConfigurationService.getRuntimeConfigurationKey(
@@ -125,28 +135,28 @@ export class GitHubService {
         if (
             !Array.isArray(jsonResponse) ||
             jsonResponse.length === 0 ||
-            !jsonResponse[0].object.sha ||
-            typeof jsonResponse[0].object.sha !== 'string'
+            !jsonResponse[0].sha ||
+            typeof jsonResponse[0].sha !== 'string'
         ) {
-            throw new InvalidGitHubResponseError();
+            throw new InvalidGitHubResponseError(repositorySlug);
         }
 
-        return jsonResponse[0].object.sha;
+        return jsonResponse[0].sha;
     }
 
     public async listDirectory(
         repositorySlug: string,
         directoryPath: string,
         ref?: string,
-    ): Promise<GitHubContentDirectoryListResponse> {
+    ): Promise<GitHubContentDirectoryList> {
         const ContentBaseTypeResponse = await this.fetchContentAPI(
             repositorySlug,
             directoryPath,
             ref,
         );
 
-        if (!isGitHubContentDirectoryListResponse(ContentBaseTypeResponse)) {
-            throw new InvalidGitHubResponseError();
+        if (!isGitHubContentDirectoryList(ContentBaseTypeResponse)) {
+            throw new InvalidGitHubResponseError(repositorySlug, ref);
         }
 
         return ContentBaseTypeResponse;
@@ -171,7 +181,7 @@ export class GitHubService {
             const jsonResponse = await response.json();
 
             if (!Array.isArray(jsonResponse)) {
-                throw new InvalidGitHubResponseError();
+                throw new InvalidGitHubResponseError(repositorySlug, ref);
             }
 
             if (
@@ -222,6 +232,31 @@ export class GitHubService {
             return matchedRef;
         }
 
-        throw new InvalidRefTypeError(ref);
+        throw new InvalidRefTypeError(repositorySlug, ref);
+    }
+
+    public async resolveDirectoryRecursively(
+        repositorySlug: string,
+        ref: string,
+        directoryPath: string,
+    ): Promise<string[]> {
+        const directoryListResponse = await this.listDirectory(repositorySlug, directoryPath, ref);
+
+        let allFiles: string[] = [];
+
+        for (const item of directoryListResponse) {
+            if (isGitHubContentListFileItem(item)) {
+                allFiles.push(item.path);
+            } else if (isGitHubContentListDirectoryItem(item)) {
+                const subDirectoryFiles = await this.resolveDirectoryRecursively(
+                    repositorySlug,
+                    ref,
+                    item.path,
+                );
+                allFiles = allFiles.concat(subDirectoryFiles);
+            }
+        }
+
+        return allFiles;
     }
 }

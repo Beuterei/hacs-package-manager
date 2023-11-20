@@ -1,5 +1,5 @@
 import { HacsConfigMapper } from '../mappers/hacsConfig.mapper';
-import { type HacsConfig, isRemoteHacsConfig } from '../shared/hacs';
+import { type Defaults, type HacsConfig, isRemoteHacsConfig } from '../shared/hacs';
 import type { HpmDependencies, HpmDependency } from '../shared/hpm';
 import { CacheService } from './cache.service';
 import { DependencyNotFoundError } from './errors/dependencyNotFoundError.exception';
@@ -10,8 +10,24 @@ import { GitHubService } from './github.service';
 export class DependencyService {
     public async addDependency(
         repositorySlug: string,
-        hpmDependency: HpmDependency,
-    ): Promise<void> {
+        unresolvedRef?: string,
+    ): Promise<HpmDependency> {
+        const category = await this.getCategory(repositorySlug);
+
+        const { ref, refType } = await this.getRefAndType(repositorySlug, unresolvedRef);
+
+        const hacsConfig = await this.getHacsConfig(repositorySlug, ref);
+
+        const files = await this.getToDownloadFiles(repositorySlug, ref, category);
+
+        const hpmDependency: HpmDependency = {
+            ref,
+            refType,
+            category,
+            files,
+            hacsConfig,
+        };
+
         const dependencyFile = Bun.file('hpm.json');
         let hpmDependencies: HpmDependencies = {};
 
@@ -28,6 +44,8 @@ export class DependencyService {
         hpmDependencies[repositorySlug] = hpmDependency;
 
         await Bun.write(dependencyFile, JSON.stringify(hpmDependencies, null, 2));
+
+        return hpmDependency;
     }
 
     public constructor(
@@ -35,12 +53,12 @@ export class DependencyService {
         private gitHubService = new GitHubService(),
     ) {}
 
-    public async getDefaultsType(repositorySlug: string): Promise<string> {
+    public async getCategory(repositorySlug: string): Promise<keyof Defaults> {
         const defaultsCache = await this.cacheService.getDefaultsCache();
 
         for (const [key, value] of Object.entries(defaultsCache.defaults)) {
             if (Array.isArray(value) && value.includes(repositorySlug)) {
-                return key;
+                return key as keyof Defaults;
             }
         }
 
@@ -57,7 +75,7 @@ export class DependencyService {
         const parsedHacsConfig = JSON.parse(atob(hacsConfigResponse.content));
 
         if (!isRemoteHacsConfig(parsedHacsConfig)) {
-            throw new InvalidHacsConfigError(repositorySlug);
+            throw new InvalidHacsConfigError(repositorySlug, ref);
         }
 
         return new HacsConfigMapper().mapRemoteHacsConfigToHacsConfig(parsedHacsConfig);
@@ -83,5 +101,27 @@ export class DependencyService {
         }
 
         return { refType: matchedRef.matchedRefType, ref: matchedRef.matchedRef };
+    }
+
+    public async getToDownloadFiles(
+        repositorySlug: string,
+        ref: string,
+        category: HpmDependency['category'],
+    ): Promise<string[]> {
+        if (category === 'theme') {
+            const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively(
+                repositorySlug,
+                ref,
+                'themes',
+            );
+
+            if (directoryListResponse.length === 0) {
+                throw new Error('No theme files found.');
+            }
+
+            return directoryListResponse;
+        }
+
+        return [];
     }
 }

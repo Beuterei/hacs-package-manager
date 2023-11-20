@@ -1,8 +1,8 @@
 import { TypeBusinessError } from './typeBusinessError.exception';
 
 export class InvalidHacsConfigError extends TypeBusinessError {
-    public constructor(dependency: string) {
-        super(`HACS config of '${dependency}' is not valid.`);
+    public constructor(repositorySlug: string, ref: string) {
+        super(`HACS config of '${repositorySlug}@${ref}' is not valid.`);
         this.name = 'HacsConfigInvalidError';
     }
 }
