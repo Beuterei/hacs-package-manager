@@ -150,6 +150,7 @@ export class DependencyService {
         }
 
         if (category === 'integration') {
+            throw new Error('Not implemented.');
             // TODO: Implement
             // TODO: content_in_root
             // TODO: repository.json?
@@ -157,12 +158,21 @@ export class DependencyService {
         }
 
         if (category === 'netdaemon') {
-            // TODO: Implement
-            // TODO: content_in_root
-            // TODO: .cs
+            const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
+                repositorySlug,
+                ref,
+                path: hacsConfig.contentInRoot ? '' : 'apps',
+            });
+
+            if (directoryListResponse.length === 0) {
+                throw new Error('No apps files found.');
+            }
+
+            return { files: directoryListResponse };
         }
 
         if (category === 'plugin') {
+            throw new Error('Not implemented.');
             // TODO: Implement
             // TODO: release
             // TODO: or filename
@@ -174,9 +184,17 @@ export class DependencyService {
         }
 
         if (category === 'pythonScript') {
-            // TODO: Implement
-            // TODO: content_in_root
-            // TODO: .py
+            const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
+                repositorySlug,
+                ref,
+                path: hacsConfig.contentInRoot ? '' : 'python_scripts',
+            });
+
+            if (directoryListResponse.length === 0) {
+                throw new Error('No python scripts found.');
+            }
+
+            return { files: directoryListResponse };
         }
 
         if (category === 'template') {
@@ -209,6 +227,6 @@ export class DependencyService {
             return { files: directoryListResponse };
         }
 
-        return { files: [] };
+        throw new Error('Invalid category.');
     }
 }

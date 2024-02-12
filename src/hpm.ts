@@ -1,11 +1,17 @@
-import { commands } from './commands';
-import yargs from 'yargs';
+import { description, version } from '../package.json';
+import { defineCommand, runMain } from 'citty';
 
-void yargs(Bun.argv.slice(2))
-    .scriptName('hpm')
-    .alias('v', 'version')
-    .command(commands)
-    .demandCommand()
-    .alias('h', 'help')
-    .help('help')
-    .epilogue('for more information, look at the readme').argv;
+const main = defineCommand({
+    meta: {
+        name: 'hpm',
+        version,
+        description,
+    },
+    subCommands: {
+        add: async () => await import('./commands/add.command').then(resolved => resolved.default),
+        config: async () =>
+            await import('./commands/config.command').then(resolved => resolved.default),
+    },
+});
+
+void runMain(main);

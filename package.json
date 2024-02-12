@@ -1,11 +1,8 @@
 {
   "name": "hacs-package-manager",
-  "module": "src/hpm.ts",
-  "type": "module",
   "version": "0.0.1",
-  "scripts": {
-    "lint": "eslint ."
-  },
+  "module": "src/hpm.ts",
+  "description": "A package manager for HACS",
   "devDependencies": {
     "@beuluis/eslint-config": "^2.0.1",
     "@types/yargs": "^17.0.29",
@@ -16,7 +13,11 @@
   "peerDependencies": {
     "typescript": ">=5.0.0"
   },
+  "scripts": {
+    "lint": "eslint ."
+  },
+  "type": "module",
   "dependencies": {
-    "yargs": "17.7.2"
+    "citty": "^0.1.5"
   }
 }

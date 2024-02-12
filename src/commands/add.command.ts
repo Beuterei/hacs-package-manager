@@ -1,17 +1,17 @@
 import { DependencyService } from '../services/dependecy.service';
-import { registerCommandModule } from '../shared/commandModule';
 import { resolveBusinessException } from '../util/exception.helper';
 import { Spinner } from '../util/spinner.helper';
+import { defineCommand } from 'citty';
 
-export default registerCommandModule<{
-    dependencies: string[];
-}>()({
-    command: 'add [dependencies..]',
-    describe: 'Adds a particular package to home assistant',
-    handler: async argv => {
+export default defineCommand({
+    meta: {
+        name: 'add [dependencies...]',
+        description: 'Adds a particular package or multiple packages to home assistant',
+    },
+    run: async ({ args }) => {
+        const dependencies = args._;
         const dependencyService = new DependencyService();
-
-        const dependencies = argv.dependencies ?? [];
+        let errorOccurred = false; // Add an error flag
 
         if (dependencies.length === 0) {
             throw new Error('No packages provided.');
@@ -47,9 +47,12 @@ export default registerCommandModule<{
                 );
             } catch (error) {
                 spinner.fail(resolveBusinessException(error));
-
-                process.exit(1);
+                errorOccurred = true; // Set the error flag to true
             }
+        }
+
+        if (errorOccurred) {
+            process.exit(1); // Exit the process with a status code of 1 if an error occurred
         }
     },
 });
