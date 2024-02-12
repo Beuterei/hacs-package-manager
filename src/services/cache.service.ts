@@ -13,7 +13,7 @@ const defaultsRepoFilePathMap: { [key in keyof Defaults]: string } = {
     appdaemon: 'appdaemon',
     integration: 'integration',
     netdaemon: 'netdaemon',
-    plugins: 'plugin',
+    plugin: 'plugin',
     pythonScript: 'python_script',
     template: 'template',
     theme: 'theme',
@@ -47,7 +47,7 @@ export class CacheService {
             this.fetchDefault('appdaemon'),
             this.fetchDefault('integration'),
             this.fetchDefault('netdaemon'),
-            this.fetchDefault('plugins'),
+            this.fetchDefault('plugin'),
             this.fetchDefault('pythonScript'),
             this.fetchDefault('template'),
             this.fetchDefault('theme'),
@@ -59,7 +59,7 @@ export class CacheService {
                 appdaemon: defaults[0],
                 integration: defaults[1],
                 netdaemon: defaults[2],
-                plugins: defaults[3],
+                plugin: defaults[3],
                 pythonScript: defaults[4],
                 template: defaults[5],
                 theme: defaults[6],
@@ -80,10 +80,10 @@ export class CacheService {
     }
 
     private async fetchDefault(uriMapKey: keyof Defaults): Promise<string[]> {
-        const response = await this.gitHubService.fetchFile(
-            'hacs/default',
-            defaultsRepoFilePathMap[uriMapKey],
-        );
+        const response = await this.gitHubService.fetchFile({
+            repositorySlug: 'hacs/default',
+            path: defaultsRepoFilePathMap[uriMapKey],
+        });
         return parseJsonToStringArray(atob(response.content));
     }
 

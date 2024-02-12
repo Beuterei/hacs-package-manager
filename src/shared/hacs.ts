@@ -2,7 +2,7 @@ export interface Defaults {
     appdaemon: string[];
     integration: string[];
     netdaemon: string[];
-    plugins: string[];
+    plugin: string[];
     pythonScript: string[];
     template: string[];
     theme: string[];

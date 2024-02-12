@@ -1,14 +1,7 @@
-import type { HacsConfig } from './hacs';
+import type { Defaults, HacsConfig } from './hacs';
 
 interface HpmDependencyBase {
-    category:
-        | 'appdaemon'
-        | 'integration'
-        | 'netdaemon'
-        | 'plugins'
-        | 'pythonScript'
-        | 'template'
-        | 'theme';
+    category: keyof Defaults;
     hacsConfig: HacsConfig;
     ref: string;
     refType: 'tag' | 'commit';

@@ -139,7 +139,7 @@ export class DependencyService {
             const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
                 repositorySlug,
                 ref,
-                path: 'apps',
+                path: hacsConfig.contentInRoot ? '' : 'apps',
             });
 
             if (directoryListResponse.length === 0) {
@@ -149,18 +149,34 @@ export class DependencyService {
             return { files: directoryListResponse };
         }
 
-        if (category === 'theme') {
-            const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
-                repositorySlug,
-                ref,
-                path: 'themes',
-            });
+        if (category === 'integration') {
+            // TODO: Implement
+            // TODO: content_in_root
+            // TODO: repository.json?
+            // TODO: manifest.json
+        }
 
-            if (directoryListResponse.length === 0) {
-                throw new Error('No theme files found.');
-            }
+        if (category === 'netdaemon') {
+            // TODO: Implement
+            // TODO: content_in_root
+            // TODO: .cs
+        }
 
-            return { files: directoryListResponse };
+        if (category === 'plugin') {
+            // TODO: Implement
+            // TODO: release
+            // TODO: or filename
+            // f"{self.data.name.replace('lovelace-', '')}.js",
+            // f"{self.data.name}.js",
+            // f"{self.data.name}.umd.js",
+            // f"{self.data.name}-bundle.js",
+            // TODO: content_in_root
+        }
+
+        if (category === 'pythonScript') {
+            // TODO: Implement
+            // TODO: content_in_root
+            // TODO: .py
         }
 
         if (category === 'template') {
@@ -177,6 +193,20 @@ export class DependencyService {
             });
 
             return { files: [jinjaFile.path] };
+        }
+
+        if (category === 'theme') {
+            const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
+                repositorySlug,
+                ref,
+                path: 'themes',
+            });
+
+            if (directoryListResponse.length === 0) {
+                throw new Error('No theme files found.');
+            }
+
+            return { files: directoryListResponse };
         }
 
         return { files: [] };
