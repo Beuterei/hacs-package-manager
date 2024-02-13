@@ -36,7 +36,13 @@ export class DependencyService {
             refType,
             category,
             hacsConfig,
-            ...(await this.resolveDependencyFiles(repositorySlug, ref, category, hacsConfig)),
+            ...(await this.resolveDependencyFiles(
+                repositorySlug,
+                ref,
+                refType,
+                category,
+                hacsConfig,
+            )),
         };
 
         const dependencyFile = Bun.file(configPath);
@@ -206,35 +212,76 @@ export class DependencyService {
             hpmDependency,
         );
 
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        await $`mkdir -p ${localDependencyPath}`;
+
         if ('files' in hpmDependency) {
             for (const file of hpmDependency.files) {
-                const fileContent = await this.gitHubService.fetchFile({
+                const remoteFile = await this.gitHubService.fetchFile({
                     repositorySlug,
                     path: file,
                     ref: hpmDependency.ref,
                 });
 
-                const localFile = Bun.file(`${localDependencyPath}/${file.split('/').pop()}`);
-
-                // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                await $`mkdir -p ${localDependencyPath}`;
-
-                await Bun.write(localFile, atob(fileContent.content));
+                await Bun.write(
+                    Bun.file(`${localDependencyPath}/${file.split('/').pop()}`),
+                    atob(remoteFile.content),
+                );
             }
 
             return;
         }
 
-        throw new Error('Not implemented.');
+        if ('releaseUrl' in hpmDependency) {
+            const releaseArtefact = await this.gitHubService.fetchReleaseArtifact({
+                ref: hpmDependency.ref,
+                path: hpmDependency.releaseUrl,
+                repositorySlug,
+            });
+
+            if (hpmDependency.hacsConfig.zipRelease) {
+                const cachePath = await this.cacheService.getCachePath();
+
+                const zipArrayBuffer = await (
+                    await fetch(releaseArtefact.browser_download_url)
+                ).arrayBuffer();
+
+                const zipFile = Bun.file(
+                    `${cachePath}/${releaseArtefact.browser_download_url.split('/').pop()}`,
+                );
+
+                await Bun.write(zipFile, zipArrayBuffer);
+
+                await $`unzip ${zipFile} -d ${localDependencyPath}`;
+
+                await $`rm -rf ${zipFile}`;
+
+                return;
+            }
+
+            await Bun.write(
+                Bun.file(
+                    `${localDependencyPath}/${releaseArtefact.browser_download_url
+                        .split('/')
+                        .pop()}`,
+                ),
+                await (await fetch(releaseArtefact.browser_download_url)).arrayBuffer(),
+            );
+
+            return;
+        }
+
+        throw new InvalidHpmFileError();
     }
 
     // eslint-disable-next-line complexity
     public async resolveDependencyFiles(
         repositorySlug: string,
         ref: string,
+        refType: 'tag' | 'commit',
         category: HpmDependency['category'],
         hacsConfig: HpmDependency['hacsConfig'],
-    ): Promise<{ files: string[] } | { releaseUrl: string }> {
+    ): Promise<{ files: string[] } | { ref?: string; refType: 'tag'; releaseUrl: string }> {
         if (hacsConfig.zipRelease) {
             const releaseFileName = hacsConfig.filename;
 
@@ -242,15 +289,20 @@ export class DependencyService {
                 throw new NoReleaseFileSpecifiedError(repositorySlug, ref);
             }
 
+            const releaseRef =
+                refType === 'tag'
+                    ? ref
+                    : await this.gitHubService.fetchLatestReleaseTag(repositorySlug);
+
             const releaseUrl = (
                 await this.gitHubService.fetchReleaseArtifact({
                     repositorySlug,
                     path: releaseFileName,
-                    ref,
+                    ref: releaseRef,
                 })
             ).browser_download_url;
 
-            return { releaseUrl };
+            return { releaseUrl, ref: releaseRef, refType: 'tag' };
         }
 
         if (category === 'appdaemon') {
@@ -298,8 +350,8 @@ export class DependencyService {
             return { files: filteredDirectoryListResponse };
         }
 
+        // TODO: Handle case when not in root and release file
         if (category === 'plugin') {
-            // TODO: check files in releases
             const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
                 repositorySlug,
                 ref,
@@ -311,8 +363,7 @@ export class DependencyService {
                         : '',
             });
 
-            const filteredDirectoryListResponse = directoryListResponse.filter(file => {
-                const fileName = file.split('/').pop();
+            const filterFileNames = (fileName: string): boolean => {
                 const repoName = repositorySlug.split('/')[1];
                 return (
                     fileName === hacsConfig.filename ||
@@ -321,13 +372,38 @@ export class DependencyService {
                     fileName === `${repoName}-bundle.js` ||
                     fileName === `${repoName.replace('lovelace-', '')}.js`
                 );
+            };
+
+            const filteredDirectoryListResponse = directoryListResponse.filter(file => {
+                const fileName = file.split('/').pop() ?? '';
+                return filterFileNames(fileName);
             });
 
-            if (filteredDirectoryListResponse.length === 0) {
+            if (filteredDirectoryListResponse.length !== 0) {
+                return { files: filteredDirectoryListResponse };
+            }
+
+            const releaseRef =
+                refType === 'tag'
+                    ? ref
+                    : await this.gitHubService.fetchLatestReleaseTag(repositorySlug);
+
+            const fetchReleaseArtifactAssets = (
+                await this.gitHubService.fetchRelease({
+                    repositorySlug,
+                    ref: releaseRef,
+                })
+            ).assets;
+
+            const filteredAssets = fetchReleaseArtifactAssets
+                .map(asset => asset.name)
+                .filter(fileName => filterFileNames(fileName));
+
+            if (filteredAssets.length === 0) {
                 throw new NoCategoryFilesFoundError(repositorySlug, ref, category);
             }
 
-            return { files: filteredDirectoryListResponse };
+            return { releaseUrl: filteredAssets[0], ref: releaseRef, refType: 'tag' };
         }
 
         if (category === 'pythonScript') {

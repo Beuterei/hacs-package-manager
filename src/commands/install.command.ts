@@ -39,11 +39,12 @@ export default defineCommand({
 
         for (const [, repositorySlug] of Object.keys(dependencies).entries()) {
             if (Object.prototype.hasOwnProperty.call(dependencies, repositorySlug)) {
-                const { ref } = dependencies[repositorySlug];
+                const { ref, refType } = dependencies[repositorySlug];
 
                 try {
+                    const refString = refType === 'commit' ? ref.slice(0, 8) : ref;
                     spinner.start(
-                        `Installing '\u001B[36m${repositorySlug}\u001B[0m@\u001B[35m${ref}\u001B[0m'...`,
+                        `Installing '\u001B[36m${repositorySlug}\u001B[0m@\u001B[35m${refString}\u001B[0m'...`,
                     );
 
                     await dependencyService.installDependency(
@@ -53,7 +54,7 @@ export default defineCommand({
                     );
 
                     spinner.done(
-                        `Installed '\u001B[36m${repositorySlug}\u001B[0m@\u001B[35m${ref}\u001B[0m'.`,
+                        `Installed '\u001B[36m${repositorySlug}\u001B[0m@\u001B[35m${refString}\u001B[0m'.`,
                     );
                 } catch (error) {
                     spinner.fail(resolveBusinessException(error));

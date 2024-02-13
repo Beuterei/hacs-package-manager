@@ -101,6 +101,11 @@ export class CacheService {
         return parseJsonToStringArray(atob(response.content));
     }
 
+    public async getCachePath() {
+        await this.ensureCachePath();
+        return this.cachePath;
+    }
+
     // Method to get the defaults cache
     public async getDefaultsCache(): Promise<DefaultsCache> {
         const maxCacheAge = 24 * 60 * 60 * 1_000; // 24 hours in milliseconds

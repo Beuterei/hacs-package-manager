@@ -32,6 +32,7 @@ interface GitHubReleaseArtifact {
 
 interface GitHubRelease {
     assets: GitHubReleaseArtifact[];
+    tag_name: string;
 }
 
 interface MatchedRef {
@@ -86,6 +87,8 @@ const isGitHubReleaseArtifact = (object: unknown): object is GitHubReleaseArtifa
 const isGitHubRelease = (object: unknown): object is GitHubRelease =>
     typeof object === 'object' &&
     object !== null &&
+    'tag_name' in object &&
+    typeof object.tag_name === 'string' &&
     'assets' in object &&
     Array.isArray(object.assets) &&
     object.assets.every(asset => isGitHubReleaseArtifact(asset));
@@ -175,15 +178,35 @@ export class GitHubService {
         return jsonResponse[0].sha;
     }
 
-    public async fetchReleaseArtifact({
+    public async fetchLatestReleaseTag(repositorySlug: string): Promise<string> {
+        const response = await fetch(
+            `https://api.github.com/repos/${repositorySlug}/releases/latest`,
+            {
+                headers: {
+                    Authorization: `token ${await this.runtimeConfigurationService.getRuntimeConfigurationKey(
+                        'gitHubToken',
+                    )}`,
+                    Accept: 'application/vnd.github+json',
+                },
+            },
+        );
+
+        const jsonResponse = await response.json();
+
+        if (!isGitHubRelease(jsonResponse)) {
+            throw new InvalidGitHubResponseError(repositorySlug);
+        }
+
+        return jsonResponse.tag_name;
+    }
+
+    public async fetchRelease({
         repositorySlug,
-        path,
         ref,
     }: {
-        path: string;
         ref: string;
         repositorySlug: string;
-    }): Promise<GitHubReleaseArtifact> {
+    }): Promise<GitHubRelease> {
         const response = await fetch(
             `https://api.github.com/repos/${repositorySlug}/releases/tags/${ref}`,
             {
@@ -197,7 +220,7 @@ export class GitHubService {
         );
 
         if (!response.ok) {
-            throw new HttpExceptionError(response.statusText, repositorySlug, path, ref);
+            throw new HttpExceptionError(response.statusText, repositorySlug, undefined, ref);
         }
 
         const jsonResponse = await response.json();
@@ -206,7 +229,21 @@ export class GitHubService {
             throw new InvalidGitHubResponseError(repositorySlug, ref);
         }
 
-        const foundAsset = jsonResponse.assets.find(asset => asset.name === path);
+        return jsonResponse;
+    }
+
+    public async fetchReleaseArtifact({
+        repositorySlug,
+        path,
+        ref,
+    }: {
+        path: string;
+        ref: string;
+        repositorySlug: string;
+    }): Promise<GitHubReleaseArtifact> {
+        const foundAsset = (await this.fetchRelease({ repositorySlug, ref })).assets.find(
+            asset => asset.name === path,
+        );
 
         if (!foundAsset) {
             throw new Error(`No asset found for '${path}'.`);
