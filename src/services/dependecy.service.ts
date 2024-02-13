@@ -69,41 +69,40 @@ export class DependencyService {
         haConfigPath: string,
         repositorySlug: string,
         hpmDependency: HpmDependency,
+        remoteFile?: string,
     ): Promise<string> {
         const { category } = hpmDependency;
 
-        const repoName = repositorySlug.split('/')[1];
+        const constructSubDirectory = (): string => {
+            let subDirectory = repositorySlug.split('/')[1];
+            if (remoteFile) {
+                const remoteFileParts = remoteFile.split('/');
+                if (
+                    remoteFile.startsWith('apps') &&
+                    remoteFileParts[1] &&
+                    remoteFileParts.length > 2
+                ) {
+                    subDirectory = remoteFileParts[1];
+                } else if (remoteFileParts[0] && remoteFileParts.length > 1) {
+                    subDirectory = remoteFileParts[0];
+                }
+            }
 
-        if (category === 'appdaemon') {
-            return `${haConfigPath}/appdaemon/apps/${repoName}/`;
-        }
+            return subDirectory;
+        };
 
-        // TODO: fix path
-        if (category === 'integration') {
-            throw new Error('Not implemented.');
-            return `${haConfigPath}/custom_components/`;
-        }
+        const categoryPaths = {
+            appdaemon: `${haConfigPath}/appdaemon/apps/${constructSubDirectory()}/`,
+            integration: `${haConfigPath}/custom_components/${constructSubDirectory()}/`,
+            netdaemon: `${haConfigPath}/netdaemon/apps/${constructSubDirectory()}/`,
+            plugin: `${haConfigPath}/www/community/`,
+            pythonScript: `${haConfigPath}/python_scripts/`,
+            template: `${haConfigPath}/custom_templates/`,
+            theme: `${haConfigPath}/themes/`,
+        };
 
-        // TODO: fix path
-        if (category === 'netdaemon') {
-            throw new Error('Not implemented.');
-            return `${haConfigPath}/netdaemon/apps/`;
-        }
-
-        if (category === 'plugin') {
-            return `${haConfigPath}/www/community/`;
-        }
-
-        if (category === 'pythonScript') {
-            return `${haConfigPath}/python_scripts/`;
-        }
-
-        if (category === 'template') {
-            return `${haConfigPath}/custom_templates/`;
-        }
-
-        if (category === 'theme') {
-            return `${haConfigPath}/themes/`;
+        if (category in categoryPaths) {
+            return categoryPaths[category];
         }
 
         throw new InvalidCategoryError(repositorySlug, hpmDependency.ref, category);
@@ -117,10 +116,12 @@ export class DependencyService {
     public async getCategory(repositorySlug: string): Promise<keyof Defaults> {
         const defaultsCache = await this.cacheService.getDefaultsCache();
 
-        for (const [key, value] of Object.entries(defaultsCache.defaults)) {
-            if (Array.isArray(value) && value.includes(repositorySlug)) {
-                return key as keyof Defaults;
-            }
+        const category = Object.entries(defaultsCache.defaults).find(
+            ([, value]) => Array.isArray(value) && value.includes(repositorySlug),
+        );
+
+        if (category) {
+            return category[0] as keyof Defaults;
         }
 
         throw new DependencyNotFoundError(repositorySlug);
@@ -206,17 +207,19 @@ export class DependencyService {
             throw new DependencyNotFoundError(repositorySlug);
         }
 
-        const localDependencyPath = await this.constructLocalDependencyPath(
-            haConfigPath,
-            repositorySlug,
-            hpmDependency,
-        );
-
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        await $`mkdir -p ${localDependencyPath}`;
-
         if ('files' in hpmDependency) {
             for (const file of hpmDependency.files) {
+                // eslint-disable-next-line @typescript-eslint/no-shadow
+                const localDependencyPath = await this.constructLocalDependencyPath(
+                    haConfigPath,
+                    repositorySlug,
+                    hpmDependency,
+                    file,
+                );
+
+                // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                await $`mkdir -p ${localDependencyPath}`;
+
                 const remoteFile = await this.gitHubService.fetchFile({
                     repositorySlug,
                     path: file,
@@ -232,22 +235,23 @@ export class DependencyService {
             return;
         }
 
-        if ('releaseUrl' in hpmDependency) {
-            const releaseArtefact = await this.gitHubService.fetchReleaseArtifact({
-                ref: hpmDependency.ref,
-                path: hpmDependency.releaseUrl,
-                repositorySlug,
-            });
+        const localDependencyPath = await this.constructLocalDependencyPath(
+            haConfigPath,
+            repositorySlug,
+            hpmDependency,
+        );
 
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        await $`mkdir -p ${localDependencyPath}`;
+
+        if ('releaseUrl' in hpmDependency) {
             if (hpmDependency.hacsConfig.zipRelease) {
                 const cachePath = await this.cacheService.getCachePath();
 
-                const zipArrayBuffer = await (
-                    await fetch(releaseArtefact.browser_download_url)
-                ).arrayBuffer();
+                const zipArrayBuffer = await (await fetch(hpmDependency.releaseUrl)).arrayBuffer();
 
                 const zipFile = Bun.file(
-                    `${cachePath}/${releaseArtefact.browser_download_url.split('/').pop()}`,
+                    `${cachePath}/$hpmDependency.releaseUrl.split('/').pop()}`,
                 );
 
                 await Bun.write(zipFile, zipArrayBuffer);
@@ -260,12 +264,8 @@ export class DependencyService {
             }
 
             await Bun.write(
-                Bun.file(
-                    `${localDependencyPath}/${releaseArtefact.browser_download_url
-                        .split('/')
-                        .pop()}`,
-                ),
-                await (await fetch(releaseArtefact.browser_download_url)).arrayBuffer(),
+                Bun.file(`${localDependencyPath}/${hpmDependency.releaseUrl.split('/').pop()}`),
+                await (await fetch(hpmDependency.releaseUrl)).arrayBuffer(),
             );
 
             return;
@@ -327,6 +327,7 @@ export class DependencyService {
             // TODO: manifest.json
         }
 
+        // TODO: add name in path when not in root
         if (category === 'netdaemon') {
             const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
                 repositorySlug,
@@ -395,15 +396,19 @@ export class DependencyService {
                 })
             ).assets;
 
-            const filteredAssets = fetchReleaseArtifactAssets
-                .map(asset => asset.name)
-                .filter(fileName => filterFileNames(fileName));
+            const filteredAssets = fetchReleaseArtifactAssets.filter(asset =>
+                filterFileNames(asset.name),
+            );
 
             if (filteredAssets.length === 0) {
                 throw new NoCategoryFilesFoundError(repositorySlug, ref, category);
             }
 
-            return { releaseUrl: filteredAssets[0], ref: releaseRef, refType: 'tag' };
+            return {
+                releaseUrl: filteredAssets[0].browser_download_url,
+                ref: releaseRef,
+                refType: 'tag',
+            };
         }
 
         if (category === 'pythonScript') {
