@@ -8,8 +8,20 @@ export default defineCommand({
         name: 'add [dependencies...]',
         description: 'Adds a particular package or multiple packages to home assistant',
     },
-    run: async ({ args }) => {
-        const dependencies = args._;
+    args: {
+        configPath: {
+            description:
+                // eslint-disable-next-line no-template-curly-in-string
+                'Path to the hpm.json file relative to the current working directory.',
+            type: 'string',
+            alias: 'c',
+            default: 'hpm.json',
+            required: false,
+        },
+    },
+    run: async ({ args: { _, configPath } }) => {
+        const dependencies = _;
+
         const dependencyService = new DependencyService();
         let errorOccurred = false; // Add an error flag
 
@@ -33,6 +45,7 @@ export default defineCommand({
                 );
 
                 const hpmDependency = await dependencyService.addDependency(
+                    configPath,
                     repositorySlug,
                     unresolvedRef,
                 );

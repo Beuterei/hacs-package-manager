@@ -3,12 +3,18 @@ import { type Defaults, type HacsConfig, isRemoteHacsConfig } from '../shared/ha
 import type { HpmDependencies, HpmDependency } from '../shared/hpm';
 import { CacheService } from './cache.service';
 import { DependencyNotFoundError } from './errors/dependencyNotFoundError.exception';
+import { HiddenDefaultBranchOrZipReleaseError } from './errors/hiddenDefaultBranchOrZipReleaseError.exception';
+import { InvalidCategoryError } from './errors/invalidCategoryError.exception';
 import { InvalidHacsConfigError } from './errors/invalidHacsConfigError.exception';
 import { InvalidHpmFileError } from './errors/invalidHpmFileError.exception';
+import { NoCategoryFilesFoundError } from './errors/noCategoryFilesFoundError.exception';
+import { NoReleaseFileSpecifiedError } from './errors/noReleaseFileSpecifiedError.exception';
 import { GitHubService } from './github.service';
+import { $ } from 'bun';
 
 export class DependencyService {
     public async addDependency(
+        configPath: string,
         repositorySlug: string,
         unresolvedRef?: string,
     ): Promise<HpmDependency> {
@@ -22,9 +28,7 @@ export class DependencyService {
         const hacsConfig = await this.getHacsConfig(repositorySlug, ref);
 
         if (resolvedFromDefaultBranch && (hacsConfig.hideDefaultBranch || hacsConfig.zipRelease)) {
-            throw new Error(
-                `The default branch of '${repositorySlug}' is hidden or a zip release is used. Please provide a release tag instead.`,
-            );
+            throw new HiddenDefaultBranchOrZipReleaseError(repositorySlug, ref);
         }
 
         const hpmDependency: HpmDependency = {
@@ -35,7 +39,7 @@ export class DependencyService {
             ...(await this.resolveDependencyFiles(repositorySlug, ref, category, hacsConfig)),
         };
 
-        const dependencyFile = Bun.file('hpm.json');
+        const dependencyFile = Bun.file(configPath);
         let hpmDependencies: HpmDependencies = {};
 
         if (await dependencyFile.exists()) {
@@ -55,6 +59,50 @@ export class DependencyService {
         return hpmDependency;
     }
 
+    public async constructLocalDependencyPath(
+        haConfigPath: string,
+        repositorySlug: string,
+        hpmDependency: HpmDependency,
+    ): Promise<string> {
+        const { category } = hpmDependency;
+
+        const repoName = repositorySlug.split('/')[1];
+
+        if (category === 'appdaemon') {
+            return `${haConfigPath}/appdaemon/apps/${repoName}/`;
+        }
+
+        // TODO: fix path
+        if (category === 'integration') {
+            throw new Error('Not implemented.');
+            return `${haConfigPath}/custom_components/`;
+        }
+
+        // TODO: fix path
+        if (category === 'netdaemon') {
+            throw new Error('Not implemented.');
+            return `${haConfigPath}/netdaemon/apps/`;
+        }
+
+        if (category === 'plugin') {
+            return `${haConfigPath}/www/community/`;
+        }
+
+        if (category === 'pythonScript') {
+            return `${haConfigPath}/python_scripts/`;
+        }
+
+        if (category === 'template') {
+            return `${haConfigPath}/custom_templates/`;
+        }
+
+        if (category === 'theme') {
+            return `${haConfigPath}/themes/`;
+        }
+
+        throw new InvalidCategoryError(repositorySlug, hpmDependency.ref, category);
+    }
+
     public constructor(
         private cacheService = CacheService.getInstance(),
         private gitHubService = new GitHubService(),
@@ -70,6 +118,22 @@ export class DependencyService {
         }
 
         throw new DependencyNotFoundError(repositorySlug);
+    }
+
+    public async getDependencies(configPath: string): Promise<HpmDependencies> {
+        const dependencyFile = Bun.file(configPath);
+
+        if (!(await dependencyFile.exists())) {
+            throw new InvalidHpmFileError();
+        }
+
+        const parsed = JSON.parse(await dependencyFile.text());
+
+        if (typeof parsed !== 'object' || parsed === null) {
+            throw new InvalidHpmFileError();
+        }
+
+        return parsed as HpmDependencies;
     }
 
     public async getHacsConfig(repositorySlug: string, ref: string): Promise<HacsConfig> {
@@ -111,6 +175,60 @@ export class DependencyService {
         return { refType: matchedRef.matchedRefType, ref: matchedRef.matchedRef };
     }
 
+    public async installDependency(
+        configPath: string,
+        haConfigPath: string,
+        repositorySlug: string,
+    ): Promise<void> {
+        const dependencyFile = Bun.file(configPath);
+
+        if (!(await dependencyFile.exists())) {
+            throw new InvalidHpmFileError();
+        }
+
+        const parsed = JSON.parse(await dependencyFile.text());
+
+        if (typeof parsed !== 'object' || parsed === null) {
+            throw new InvalidHpmFileError();
+        }
+
+        const hpmDependencies = parsed as HpmDependencies;
+
+        const hpmDependency = hpmDependencies[repositorySlug];
+
+        if (!hpmDependency) {
+            throw new DependencyNotFoundError(repositorySlug);
+        }
+
+        const localDependencyPath = await this.constructLocalDependencyPath(
+            haConfigPath,
+            repositorySlug,
+            hpmDependency,
+        );
+
+        if ('files' in hpmDependency) {
+            for (const file of hpmDependency.files) {
+                const fileContent = await this.gitHubService.fetchFile({
+                    repositorySlug,
+                    path: file,
+                    ref: hpmDependency.ref,
+                });
+
+                const localFile = Bun.file(`${localDependencyPath}/${file.split('/').pop()}`);
+
+                // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                await $`mkdir -p ${localDependencyPath}`;
+
+                await Bun.write(localFile, atob(fileContent.content));
+            }
+
+            return;
+        }
+
+        throw new Error('Not implemented.');
+    }
+
+    // eslint-disable-next-line complexity
     public async resolveDependencyFiles(
         repositorySlug: string,
         ref: string,
@@ -121,7 +239,7 @@ export class DependencyService {
             const releaseFileName = hacsConfig.filename;
 
             if (!releaseFileName) {
-                throw new Error('No release file found.');
+                throw new NoReleaseFileSpecifiedError(repositorySlug, ref);
             }
 
             const releaseUrl = (
@@ -139,11 +257,11 @@ export class DependencyService {
             const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
                 repositorySlug,
                 ref,
-                path: hacsConfig.contentInRoot ? '' : 'apps',
+                path: 'apps',
             });
 
             if (directoryListResponse.length === 0) {
-                throw new Error('No apps files found.');
+                throw new NoCategoryFilesFoundError(repositorySlug, ref, category);
             }
 
             return { files: directoryListResponse };
@@ -161,47 +279,86 @@ export class DependencyService {
             const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
                 repositorySlug,
                 ref,
-                path: hacsConfig.contentInRoot ? '' : 'apps',
+                path:
+                    typeof hacsConfig.contentInRoot === 'boolean'
+                        ? hacsConfig.contentInRoot
+                            ? ''
+                            : 'apps'
+                        : '',
             });
 
-            if (directoryListResponse.length === 0) {
-                throw new Error('No apps files found.');
+            const filteredDirectoryListResponse = directoryListResponse.filter(file =>
+                file.endsWith('.cs'),
+            );
+
+            if (filteredDirectoryListResponse.length === 0) {
+                throw new NoCategoryFilesFoundError(repositorySlug, ref, category);
             }
 
-            return { files: directoryListResponse };
+            return { files: filteredDirectoryListResponse };
         }
 
         if (category === 'plugin') {
-            throw new Error('Not implemented.');
-            // TODO: Implement
-            // TODO: release
-            // TODO: or filename
-            // f"{self.data.name.replace('lovelace-', '')}.js",
-            // f"{self.data.name}.js",
-            // f"{self.data.name}.umd.js",
-            // f"{self.data.name}-bundle.js",
-            // TODO: content_in_root
+            // TODO: check files in releases
+            const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
+                repositorySlug,
+                ref,
+                path:
+                    typeof hacsConfig.contentInRoot === 'boolean'
+                        ? hacsConfig.contentInRoot
+                            ? ''
+                            : 'dist'
+                        : '',
+            });
+
+            const filteredDirectoryListResponse = directoryListResponse.filter(file => {
+                const fileName = file.split('/').pop();
+                const repoName = repositorySlug.split('/')[1];
+                return (
+                    fileName === hacsConfig.filename ||
+                    fileName === `${repoName}.js` ||
+                    fileName === `${repoName}.umd.js` ||
+                    fileName === `${repoName}-bundle.js` ||
+                    fileName === `${repoName.replace('lovelace-', '')}.js`
+                );
+            });
+
+            if (filteredDirectoryListResponse.length === 0) {
+                throw new NoCategoryFilesFoundError(repositorySlug, ref, category);
+            }
+
+            return { files: filteredDirectoryListResponse };
         }
 
         if (category === 'pythonScript') {
             const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
                 repositorySlug,
                 ref,
-                path: hacsConfig.contentInRoot ? '' : 'python_scripts',
+                path:
+                    typeof hacsConfig.contentInRoot === 'boolean'
+                        ? hacsConfig.contentInRoot
+                            ? ''
+                            : 'python_scripts'
+                        : '',
             });
 
-            if (directoryListResponse.length === 0) {
-                throw new Error('No python scripts found.');
+            const filteredDirectoryListResponse = directoryListResponse.filter(file =>
+                file.endsWith('.py'),
+            );
+
+            if (filteredDirectoryListResponse.length === 0) {
+                throw new NoCategoryFilesFoundError(repositorySlug, ref, category);
             }
 
-            return { files: directoryListResponse };
+            return { files: filteredDirectoryListResponse };
         }
 
+        // TODO: Check if i need to carry the validation
         if (category === 'template') {
             const filename = hacsConfig.filename;
 
             if (!filename) {
-                throw new Error('No template files found.');
+                throw new NoCategoryFilesFoundError(repositorySlug, ref, category);
             }
 
             const jinjaFile = await this.gitHubService.fetchFile({
@@ -220,13 +377,17 @@ export class DependencyService {
                 path: 'themes',
             });
 
-            if (directoryListResponse.length === 0) {
-                throw new Error('No theme files found.');
+            const filteredDirectoryListResponse = directoryListResponse.filter(file =>
+                file.endsWith('.yaml'),
+            );
+
+            if (filteredDirectoryListResponse.length === 0) {
+                throw new NoCategoryFilesFoundError(repositorySlug, ref, category);
             }
 
-            return { files: directoryListResponse };
+            return { files: filteredDirectoryListResponse };
         }
 
-        throw new Error('Invalid category.');
+        throw new InvalidCategoryError(repositorySlug, ref, category);
     }
 }

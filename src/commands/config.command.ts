@@ -6,12 +6,22 @@ import { defineCommand, showUsage } from 'citty';
 
 const setCommand = defineCommand({
     meta: {
-        name: 'set [key] [value]',
+        name: 'set',
         description: 'Set a configuration value',
     },
-    run: async ({ args }) => {
-        const [key, value] = args._;
-
+    args: {
+        key: {
+            description: 'The key to set',
+            type: 'positional',
+            required: true,
+        },
+        value: {
+            description: 'The value to set',
+            type: 'positional',
+            required: true,
+        },
+    },
+    run: async ({ args: { key, value } }) => {
         if (key === undefined || value === undefined) {
             await showUsage(setCommand);
             throw new Error('Invalid usage');
@@ -32,12 +42,17 @@ const setCommand = defineCommand({
 
 const getCommand = defineCommand({
     meta: {
-        name: 'get [key]',
+        name: 'get',
         description: 'Get a configuration value',
     },
-    run: async ({ args }) => {
-        const [key] = args._;
-
+    args: {
+        key: {
+            description: 'The key to get',
+            type: 'positional',
+            required: false,
+        },
+    },
+    run: async ({ args: { key } }) => {
         const runtimeConfigurationService = RuntimeConfigurationService.getInstance();
 
         if (key === undefined) {
