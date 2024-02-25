@@ -1,12 +1,10 @@
-import { description, version } from '../package.json';
 import { defineCommand, runMain } from 'citty';
 
 // TODO: Add husky
 const main = defineCommand({
     meta: {
         name: 'hpm',
-        version,
-        description,
+        description: 'A package manager for HACS',
     },
     subCommands: {
         add: async () => await import('./commands/add.command').then(resolved => resolved.default),
