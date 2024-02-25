@@ -16,29 +16,48 @@ export class PythonScriptDependencyService implements CategoryDependencyService 
         refType: 'tag' | 'commit',
         hacsConfig: HpmDependency['hacsConfig'],
     ): Promise<{ files: string[] }> {
-        const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
-            repositorySlug,
-            ref,
-            path: '', // TODO: Optimise to first try to only get the python_scripts directory. Do the same for the other types.
-            // TODO: also optimise to check the filename directly instead of filtering the list of files.
-        });
-
-        let filteredDirectoryListResponse = directoryListResponse.filter(file =>
-            file.startsWith('pythonScript'),
-        );
-
-        if (filteredDirectoryListResponse.length === 0) {
-            filteredDirectoryListResponse = directoryListResponse.filter(file =>
-                file.endsWith('.py'),
-            );
-        }
-
-        let filteredFiles = filteredDirectoryListResponse;
+        const dependencyPath = 'python_scripts';
         const filename = hacsConfig.filename;
 
         if (filename) {
-            filteredFiles = directoryListResponse.filter(file => file.endsWith(filename));
+            if (
+                await this.gitHubService.checkIfFileExists({
+                    repositorySlug,
+                    ref,
+                    path: `${dependencyPath}/${filename}`,
+                })
+            ) {
+                return { files: [`${dependencyPath}/${filename}`] };
+            }
+
+            if (
+                await this.gitHubService.checkIfFileExists({
+                    repositorySlug,
+                    ref,
+                    path: filename,
+                })
+            ) {
+                return { files: [filename] };
+            }
+
+            throw new NoCategoryFilesFoundError(repositorySlug, ref, 'pythonScript');
         }
+
+        let directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
+            repositorySlug,
+            ref,
+            path: dependencyPath,
+        });
+
+        if (directoryListResponse.length === 0) {
+            directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
+                repositorySlug,
+                ref,
+                path: '',
+            });
+        }
+
+        const filteredFiles = directoryListResponse.filter(file => file.endsWith('.py'));
 
         if (filteredFiles.length === 0) {
             throw new NoCategoryFilesFoundError(repositorySlug, ref, 'pythonScript');

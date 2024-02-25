@@ -94,6 +94,27 @@ const isGitHubRelease = (object: unknown): object is GitHubRelease =>
     object.assets.every(asset => isGitHubReleaseArtifact(asset));
 
 export class GitHubService {
+    public async checkIfFileExists({
+        repositorySlug,
+        path,
+        ref,
+    }: {
+        path: string;
+        ref?: string;
+        repositorySlug: string;
+    }): Promise<boolean> {
+        try {
+            await this.fetchFile({ repositorySlug, path, ref });
+            return true;
+        } catch (error) {
+            if (error instanceof HttpExceptionError && error.status === 404) {
+                return false;
+            } else {
+                throw error;
+            }
+        }
+    }
+
     public async checkIfReleasesExist(repositorySlug: string): Promise<boolean> {
         const response = await fetch(`https://api.github.com/repos/${repositorySlug}/releases`, {
             headers: {
@@ -368,6 +389,9 @@ export class GitHubService {
         throw new InvalidRefTypeError(repositorySlug, unresolvedRef);
     }
 
+    /**
+     * Returns an empty array if the directory does not exist. This is not optimal but syntax sugar for the caller in most cases.
+     */
     public async resolveDirectoryRecursively({
         repositorySlug,
         path,
@@ -377,7 +401,16 @@ export class GitHubService {
         ref: string;
         repositorySlug: string;
     }): Promise<string[]> {
-        const directoryListResponse = await this.listDirectory({ repositorySlug, path, ref });
+        let directoryListResponse;
+        try {
+            directoryListResponse = await this.listDirectory({ repositorySlug, path, ref });
+        } catch (error) {
+            if (error instanceof HttpExceptionError && error.status === 404) {
+                return [];
+            } else {
+                throw error;
+            }
+        }
 
         let allFiles: string[] = [];
 

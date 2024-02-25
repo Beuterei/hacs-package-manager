@@ -16,28 +16,48 @@ export class ThemeDependencyService implements CategoryDependencyService {
         refType: 'tag' | 'commit',
         hacsConfig: HpmDependency['hacsConfig'],
     ): Promise<{ files: string[] }> {
-        const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
-            repositorySlug,
-            ref,
-            path: '',
-        });
-
-        let filteredDirectoryListResponse = directoryListResponse.filter(file =>
-            file.startsWith('theme'),
-        );
-
-        if (filteredDirectoryListResponse.length === 0) {
-            filteredDirectoryListResponse = directoryListResponse.filter(file =>
-                file.endsWith('.yaml'),
-            );
-        }
-
-        let filteredFiles = filteredDirectoryListResponse;
+        const dependencyPath = 'themes';
         const filename = hacsConfig.filename;
 
         if (filename) {
-            filteredFiles = directoryListResponse.filter(file => file.endsWith(filename));
+            if (
+                await this.gitHubService.checkIfFileExists({
+                    repositorySlug,
+                    ref,
+                    path: `${dependencyPath}/${filename}`,
+                })
+            ) {
+                return { files: [`${dependencyPath}/${filename}`] };
+            }
+
+            if (
+                await this.gitHubService.checkIfFileExists({
+                    repositorySlug,
+                    ref,
+                    path: filename,
+                })
+            ) {
+                return { files: [filename] };
+            }
+
+            throw new NoCategoryFilesFoundError(repositorySlug, ref, 'theme');
         }
+
+        let directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
+            repositorySlug,
+            ref,
+            path: dependencyPath,
+        });
+
+        if (directoryListResponse.length === 0) {
+            directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
+                repositorySlug,
+                ref,
+                path: '',
+            });
+        }
+
+        const filteredFiles = directoryListResponse.filter(file => file.endsWith('.yaml'));
 
         if (filteredFiles.length === 0) {
             throw new NoCategoryFilesFoundError(repositorySlug, ref, 'theme');

@@ -24,6 +24,22 @@ export class NetdaemonDependencyService implements CategoryDependencyService {
         refType: 'tag' | 'commit',
         hacsConfig: HpmDependency['hacsConfig'],
     ): Promise<{ files: string[] }> {
+        const filename = hacsConfig.filename;
+
+        if (filename) {
+            if (
+                await this.gitHubService.checkIfFileExists({
+                    repositorySlug,
+                    ref,
+                    path: `apps/${filename}`,
+                })
+            ) {
+                return { files: [`apps/${filename}`] };
+            }
+
+            throw new NoCategoryFilesFoundError(repositorySlug, ref, 'netdaemon');
+        }
+
         const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
             repositorySlug,
             ref,
@@ -34,17 +50,10 @@ export class NetdaemonDependencyService implements CategoryDependencyService {
             file.endsWith('.cs'),
         );
 
-        let filteredFiles = filteredDirectoryListResponse;
-        const filename = hacsConfig.filename;
-
-        if (filename) {
-            filteredFiles = directoryListResponse.filter(file => file.endsWith(filename));
-        }
-
-        if (filteredFiles.length === 0) {
+        if (filteredDirectoryListResponse.length === 0) {
             throw new NoCategoryFilesFoundError(repositorySlug, ref, 'netdaemon');
         }
 
-        return { files: filteredFiles };
+        return { files: filteredDirectoryListResponse };
     }
 }
