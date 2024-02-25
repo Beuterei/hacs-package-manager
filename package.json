@@ -7,16 +7,24 @@
     "@beuluis/eslint-config": "^2.0.1",
     "bun-types": "^1.0.26",
     "eslint": "^8.53.0",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2",
     "typescript": "^5.0.0"
   },
   "peerDependencies": {
     "typescript": ">=5.0.0"
   },
   "scripts": {
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "prepare": "husky"
   },
   "type": "module",
   "dependencies": {
     "citty": "^0.1.5"
+  },
+  "lint-staged": {
+    "*.{js,ts,json,yml,yaml}": [
+      "eslint"
+    ]
   }
 }
