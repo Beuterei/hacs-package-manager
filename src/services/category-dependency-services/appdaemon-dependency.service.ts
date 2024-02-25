@@ -1,3 +1,4 @@
+import type { HpmDependency } from '../../shared/hpm';
 import { constructSubDirectory } from '../../util/dependency.helper';
 import { NoCategoryFilesFoundError } from '../errors/no-category-files-found-error.exception';
 import { GitHubService } from '../github.service';
@@ -20,6 +21,8 @@ export class AppdaemonDependencyService implements CategoryDependencyService {
     public async resolveDependencyArtifacts(
         repositorySlug: string,
         ref: string,
+        refType: 'tag' | 'commit',
+        hacsConfig: HpmDependency['hacsConfig'],
     ): Promise<{ files: string[] }> {
         const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
             repositorySlug,
@@ -27,10 +30,17 @@ export class AppdaemonDependencyService implements CategoryDependencyService {
             path: 'apps',
         });
 
-        if (directoryListResponse.length === 0) {
+        let filteredFiles = directoryListResponse;
+        const filename = hacsConfig.filename;
+
+        if (filename) {
+            filteredFiles = directoryListResponse.filter(file => file.endsWith(filename));
+        }
+
+        if (filteredFiles.length === 0) {
             throw new NoCategoryFilesFoundError(repositorySlug, ref, 'appdaemon');
         }
 
-        return { files: directoryListResponse };
+        return { files: filteredFiles };
     }
 }

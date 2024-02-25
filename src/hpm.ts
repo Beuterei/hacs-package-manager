@@ -1,6 +1,7 @@
 import { description, version } from '../package.json';
 import { defineCommand, runMain } from 'citty';
 
+// TODO: Add husky
 const main = defineCommand({
     meta: {
         name: 'hpm',

@@ -1,3 +1,4 @@
+import type { HpmDependency } from '../../shared/hpm';
 import { constructSubDirectory } from '../../util/dependency.helper';
 import { GitHubService } from '../github.service';
 import type { CategoryDependencyService } from './category-dependency-service.interface';
@@ -19,6 +20,8 @@ export class IntegrationDependencyService implements CategoryDependencyService {
     public async resolveDependencyArtifacts(
         _repositorySlug: string,
         _ref: string,
+        _refType: 'tag' | 'commit',
+        _hacsConfig: HpmDependency['hacsConfig'],
     ): Promise<{ files: string[] }> {
         throw new Error('Method not implemented.');
     }
