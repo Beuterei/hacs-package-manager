@@ -25,7 +25,6 @@ const categoryToDependencyService: { [key in keyof Defaults]: CategoryDependency
     appdaemon: new AppdaemonDependencyService(),
     integration: new IntegrationDependencyService(),
     netdaemon: new NetdaemonDependencyService(),
-    // TODO: Handle case when not in root and release file
     plugin: new PluginDependencyService(),
     pythonScript: new PythonScriptDependencyService(),
     template: new TemplateDependencyService(),
@@ -59,7 +58,7 @@ export class DependencyService {
             throw new HiddenDefaultBranchOrZipReleaseError(repositorySlug, ref);
         }
 
-        if (hacsConfig.zipRelease) {
+        if (hacsConfig.zipRelease && category === 'integration') {
             const zipReleaseDependencyService = new ZipReleaseDependencyService();
             const zipReleaseHpmDependency: HpmDependency = {
                 ref,
@@ -227,8 +226,8 @@ export class DependencyService {
 
         const dependencyService = categoryToDependencyService[hpmDependency.category];
 
-        if ('files' in hpmDependency) {
-            for (const file of hpmDependency.files) {
+        if ('remoteFiles' in hpmDependency) {
+            for (const file of hpmDependency.remoteFiles) {
                 // eslint-disable-next-line @typescript-eslint/no-shadow
                 const localDependencyPath = dependencyService.getLocalDependencyPath(
                     haConfigPath,

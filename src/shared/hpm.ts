@@ -8,7 +8,7 @@ interface HpmDependencyBase {
 }
 
 export interface HpmDependencyFiles extends HpmDependencyBase {
-    files: string[];
+    remoteFiles: string[];
 }
 
 export interface HpmDependencyZipRelease extends HpmDependencyBase {

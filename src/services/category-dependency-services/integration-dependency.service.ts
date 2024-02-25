@@ -1,5 +1,6 @@
 import type { HpmDependency } from '../../shared/hpm';
 import { constructSubDirectory } from '../../util/dependency.helper';
+import { NoCategoryFilesFoundError } from '../errors/no-category-files-found-error.exception';
 import { GitHubService } from '../github.service';
 import type { CategoryDependencyService } from './category-dependency-service.interface';
 
@@ -18,11 +19,21 @@ export class IntegrationDependencyService implements CategoryDependencyService {
     }
 
     public async resolveDependencyArtifacts(
-        _repositorySlug: string,
-        _ref: string,
-        _refType: 'tag' | 'commit',
-        _hacsConfig: HpmDependency['hacsConfig'],
-    ): Promise<{ files: string[] }> {
-        throw new Error('Method not implemented.');
+        repositorySlug: string,
+        ref: string,
+        refType: 'tag' | 'commit',
+        hacsConfig: HpmDependency['hacsConfig'],
+    ): Promise<{ remoteFiles: string[] }> {
+        const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
+            repositorySlug,
+            ref,
+            path: hacsConfig.contentInRoot ? '' : 'custom_components',
+        });
+
+        if (directoryListResponse.length === 0) {
+            throw new NoCategoryFilesFoundError(repositorySlug, ref, 'integration');
+        }
+
+        return { remoteFiles: directoryListResponse };
     }
 }

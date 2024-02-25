@@ -55,6 +55,13 @@ export default defineCommand({
                         ? hpmDependency.ref.slice(0, 8)
                         : hpmDependency.ref;
 
+                if (hpmDependency.category === 'netdaemon') {
+                    spinner.doneWithWarning(
+                        `Added '\u001B[36m${repositorySlug}\u001B[37m@\u001B[35m${refString}\u001B[33m'. Be careful, netdaemon dependencies are deprecated.`,
+                    );
+                    continue;
+                }
+
                 spinner.done(
                     `Added '\u001B[36m${repositorySlug}\u001B[37m@\u001B[35m${refString}\u001B[0m'.`,
                 );

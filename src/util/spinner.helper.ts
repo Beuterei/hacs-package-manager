@@ -5,8 +5,12 @@ export class Spinner {
         this.stop(doneMessage);
     }
 
+    public doneWithWarning(doneMessage?: string): void {
+        this.stop(doneMessage, 'warning');
+    }
+
     public fail(message: string): void {
-        this.stop(message, true);
+        this.stop(message, 'fail');
     }
 
     private frames: string[] = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
@@ -40,15 +44,20 @@ export class Spinner {
         }, this.speed);
     }
 
-    private stop(message?: string, fail: boolean = false): void {
+    private stop(message?: string, status: 'fail' | 'success' | 'warning' = 'success'): void {
         if (this.intervalId) {
             clearInterval(this.intervalId);
             this.intervalId = undefined;
             console.write('\r\u001B[K'); // Clear line
             console.write('\u001B[?25h'); // Show cursor
             if (message) {
-                if (fail) {
+                if (status === 'fail') {
                     console.write(`\u001B[31m   ✗ ${message}\u001B[0m\n`);
+                    return;
+                }
+
+                if (status === 'warning') {
+                    console.write(`\u001B[33m   ⚠ ${message}\u001B[0m\n`);
                     return;
                 }
 

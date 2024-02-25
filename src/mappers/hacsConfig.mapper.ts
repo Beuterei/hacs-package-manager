@@ -13,6 +13,8 @@ export class HacsConfigMapper {
                     ? remoteHacsConfig.hide_default_branch.toLowerCase() === 'true'
                     : remoteHacsConfig.hide_default_branch,
             filename: remoteHacsConfig.filename,
+            // TODO: when updating first delete the local files first
+            // TODO: Also when it is a ZIP release i need to track the output somehow
             persistentDirectory: remoteHacsConfig.persistent_directory,
             zipRelease:
                 typeof remoteHacsConfig.zip_release === 'string'

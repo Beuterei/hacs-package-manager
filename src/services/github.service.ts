@@ -392,6 +392,40 @@ export class GitHubService {
     /**
      * Returns an empty array if the directory does not exist. This is not optimal but syntax sugar for the caller in most cases.
      */
+    public async resolveDirectory({
+        repositorySlug,
+        path,
+        ref,
+    }: {
+        path: string;
+        ref: string;
+        repositorySlug: string;
+    }): Promise<string[]> {
+        let directoryListResponse;
+        try {
+            directoryListResponse = await this.listDirectory({ repositorySlug, path, ref });
+        } catch (error) {
+            if (error instanceof HttpExceptionError && error.status === 404) {
+                return [];
+            } else {
+                throw error;
+            }
+        }
+
+        const allFiles: string[] = [];
+
+        for (const item of directoryListResponse) {
+            if (isGitHubContentListFileItem(item)) {
+                allFiles.push(item.path);
+            }
+        }
+
+        return allFiles;
+    }
+
+    /**
+     * Returns an empty array if the directory does not exist. This is not optimal but syntax sugar for the caller in most cases.
+     */
     public async resolveDirectoryRecursively({
         repositorySlug,
         path,

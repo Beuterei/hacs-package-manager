@@ -15,7 +15,7 @@ export class PythonScriptDependencyService implements CategoryDependencyService 
         ref: string,
         refType: 'tag' | 'commit',
         hacsConfig: HpmDependency['hacsConfig'],
-    ): Promise<{ files: string[] }> {
+    ): Promise<{ remoteFiles: string[] }> {
         const dependencyPath = 'python_scripts';
         const filename = hacsConfig.filename;
 
@@ -27,35 +27,17 @@ export class PythonScriptDependencyService implements CategoryDependencyService 
                     path: `${dependencyPath}/${filename}`,
                 })
             ) {
-                return { files: [`${dependencyPath}/${filename}`] };
-            }
-
-            if (
-                await this.gitHubService.checkIfFileExists({
-                    repositorySlug,
-                    ref,
-                    path: filename,
-                })
-            ) {
-                return { files: [filename] };
+                return { remoteFiles: [`${dependencyPath}/${filename}`] };
             }
 
             throw new NoCategoryFilesFoundError(repositorySlug, ref, 'pythonScript');
         }
 
-        let directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
+        const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
             repositorySlug,
             ref,
             path: dependencyPath,
         });
-
-        if (directoryListResponse.length === 0) {
-            directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
-                repositorySlug,
-                ref,
-                path: '',
-            });
-        }
 
         const filteredFiles = directoryListResponse.filter(file => file.endsWith('.py'));
 
@@ -63,6 +45,6 @@ export class PythonScriptDependencyService implements CategoryDependencyService 
             throw new NoCategoryFilesFoundError(repositorySlug, ref, 'pythonScript');
         }
 
-        return { files: filteredFiles };
+        return { remoteFiles: filteredFiles };
     }
 }

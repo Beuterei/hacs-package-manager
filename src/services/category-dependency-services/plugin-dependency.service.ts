@@ -10,14 +10,13 @@ export class PluginDependencyService implements CategoryDependencyService {
         return `${haConfigPath}/www/community/`;
     }
 
-    // TODO: refactor this that it does not return a new type and searches in all files
     public async resolveDependencyArtifacts(
         repositorySlug: string,
         ref: string,
         refType: 'tag' | 'commit',
         hacsConfig: HpmDependency['hacsConfig'],
-    ): Promise<{ files: string[] } | { ref: string; refType: 'tag'; releaseUrl: string }> {
-        const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
+    ): Promise<{ remoteFiles: string[] } | { ref: string; refType: 'tag'; releaseUrl: string }> {
+        const directoryListResponse = await this.gitHubService.resolveDirectory({
             repositorySlug,
             ref,
             path:
@@ -45,7 +44,7 @@ export class PluginDependencyService implements CategoryDependencyService {
         });
 
         if (filteredDirectoryListResponse.length !== 0) {
-            return { files: filteredDirectoryListResponse };
+            return { remoteFiles: filteredDirectoryListResponse };
         }
 
         const releaseRef =

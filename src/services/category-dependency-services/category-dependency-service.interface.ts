@@ -11,5 +11,5 @@ export interface CategoryDependencyService {
         ref: string,
         refType: 'tag' | 'commit',
         hacsConfig: HpmDependency['hacsConfig'],
-    ) => Promise<{ files: string[] } | { ref: string; refType: 'tag'; releaseUrl: string }>;
+    ) => Promise<{ remoteFiles: string[] } | { ref: string; refType: 'tag'; releaseUrl: string }>;
 }

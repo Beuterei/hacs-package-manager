@@ -15,7 +15,7 @@ export class ThemeDependencyService implements CategoryDependencyService {
         ref: string,
         refType: 'tag' | 'commit',
         hacsConfig: HpmDependency['hacsConfig'],
-    ): Promise<{ files: string[] }> {
+    ): Promise<{ remoteFiles: string[] }> {
         const dependencyPath = 'themes';
         const filename = hacsConfig.filename;
 
@@ -27,35 +27,17 @@ export class ThemeDependencyService implements CategoryDependencyService {
                     path: `${dependencyPath}/${filename}`,
                 })
             ) {
-                return { files: [`${dependencyPath}/${filename}`] };
-            }
-
-            if (
-                await this.gitHubService.checkIfFileExists({
-                    repositorySlug,
-                    ref,
-                    path: filename,
-                })
-            ) {
-                return { files: [filename] };
+                return { remoteFiles: [`${dependencyPath}/${filename}`] };
             }
 
             throw new NoCategoryFilesFoundError(repositorySlug, ref, 'theme');
         }
 
-        let directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
+        const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
             repositorySlug,
             ref,
             path: dependencyPath,
         });
-
-        if (directoryListResponse.length === 0) {
-            directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
-                repositorySlug,
-                ref,
-                path: '',
-            });
-        }
 
         const filteredFiles = directoryListResponse.filter(file => file.endsWith('.yaml'));
 
@@ -63,6 +45,6 @@ export class ThemeDependencyService implements CategoryDependencyService {
             throw new NoCategoryFilesFoundError(repositorySlug, ref, 'theme');
         }
 
-        return { files: filteredFiles };
+        return { remoteFiles: filteredFiles };
     }
 }
