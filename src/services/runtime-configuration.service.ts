@@ -1,5 +1,5 @@
 // Importing necessary modules and types
-import { InvalidHpmrcFileError } from './errors/invalidHpmrcFileError.exception';
+import { InvalidHpmrcFileError } from './errors/invalid-hpmrc-file-error.exception';
 import type { BunFile } from 'bun';
 
 // Define the keys that are valid for runtime configuration

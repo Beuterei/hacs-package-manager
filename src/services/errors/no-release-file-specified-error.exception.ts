@@ -1,4 +1,4 @@
-import { TypeBusinessError } from './typeBusinessError.exception';
+import { TypeBusinessError } from './type-business-error.exception';
 
 export class NoReleaseFileSpecifiedError extends TypeBusinessError {
     public constructor(repositorySlug: string, ref: string) {

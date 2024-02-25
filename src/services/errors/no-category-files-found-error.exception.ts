@@ -1,5 +1,5 @@
 import type { HpmDependency } from '../../shared/hpm';
-import { TypeBusinessError } from './typeBusinessError.exception';
+import { TypeBusinessError } from './type-business-error.exception';
 
 export class NoCategoryFilesFoundError extends TypeBusinessError {
     public constructor(repositorySlug: string, ref: string, category: HpmDependency['category']) {

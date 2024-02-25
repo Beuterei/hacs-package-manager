@@ -1,5 +1,5 @@
-import { BusinessError } from '../services/errors/businessError.exception';
-import { TypeBusinessError } from '../services/errors/typeBusinessError.exception';
+import { BusinessError } from '../services/errors/business-error.exception';
+import { TypeBusinessError } from '../services/errors/type-business-error.exception';
 
 export const resolveBusinessException = (error: unknown): string => {
     if (error instanceof BusinessError || error instanceof TypeBusinessError) {

@@ -45,6 +45,7 @@ const getCommand = defineCommand({
         name: 'get',
         description: 'Get a configuration value',
     },
+    // TODO: add zod
     args: {
         key: {
             description: 'The key to get',

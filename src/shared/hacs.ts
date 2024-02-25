@@ -9,30 +9,41 @@ export interface Defaults {
 }
 
 export interface RemoteHacsConfig {
-    content_in_root?: boolean;
+    content_in_root?: boolean | 'true' | 'false';
     filename?: string;
-    hide_default_branch?: boolean;
-    name: string;
+    hide_default_branch?: boolean | 'true' | 'false';
+    name?: string;
     persistent_directory?: string;
-    zip_release?: boolean;
+    zip_release?: boolean | 'true' | 'false';
 }
 
-export const isRemoteHacsConfig = (object: unknown): object is HacsConfig =>
+export const isRemoteHacsConfig = (object: unknown): object is RemoteHacsConfig =>
     typeof object === 'object' &&
     object !== null &&
-    'name' in object &&
-    typeof object.name === 'string' &&
-    ('content_in_root' in object ? typeof object.content_in_root === 'boolean' : true) &&
+    ('name' in object ? typeof object.name === 'string' : true) &&
+    ('content_in_root' in object
+        ? typeof object.content_in_root === 'boolean' ||
+          object.content_in_root === 'true' ||
+          object.content_in_root === 'false'
+        : true) &&
     ('filename' in object ? typeof object.filename === 'string' : true) &&
-    ('hide_default_branch' in object ? typeof object.hide_default_branch === 'boolean' : true) &&
+    ('hide_default_branch' in object
+        ? typeof object.hide_default_branch === 'boolean' ||
+          object.hide_default_branch === 'true' ||
+          object.hide_default_branch === 'false'
+        : true) &&
     ('persistent_directory' in object ? typeof object.persistent_directory === 'string' : true) &&
-    ('zip_release' in object ? typeof object.zip_release === 'boolean' : true);
+    ('zip_release' in object
+        ? typeof object.zip_release === 'boolean' ||
+          object.zip_release === 'true' ||
+          object.zip_release === 'false'
+        : true);
 
 export interface HacsConfig {
     contentInRoot?: boolean;
     filename?: string;
     hideDefaultBranch?: boolean;
-    name: string;
+    name?: string;
     persistentDirectory?: string;
     zipRelease?: boolean;
 }

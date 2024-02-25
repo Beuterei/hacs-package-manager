@@ -1,5 +1,15 @@
 # Based on https://raw.githubusercontent.com/github/gitignore/main/Node.gitignore
 
+# Local development
+appdaemon
+custom_components
+netdaemon
+www
+python_scripts
+custom_templates
+themes
+hpm*.json
+
 # Logs
 
 logs

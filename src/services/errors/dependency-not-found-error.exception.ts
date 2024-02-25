@@ -1,4 +1,4 @@
-import { BusinessError } from './businessError.exception';
+import { BusinessError } from './business-error.exception';
 
 export class DependencyNotFoundError extends BusinessError {
     public constructor(repositorySlug: string) {

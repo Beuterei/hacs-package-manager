@@ -1,6 +1,6 @@
-import { HttpExceptionError } from './errors/httpExceptionError.exception';
-import { InvalidGitHubResponseError } from './errors/invalidGitHubResponseError.exception';
-import { InvalidRefTypeError } from './errors/invalidRefTypeError.exception';
+import { HttpExceptionError } from './errors/http-exception-error.exception';
+import { InvalidGitHubResponseError } from './errors/invalid-git-hub-response-error.exception';
+import { InvalidRefTypeError } from './errors/invalid-ref-type-error.exception';
 import { RuntimeConfigurationService } from './runtime-configuration.service';
 
 interface GitHubContentListItemBase {
@@ -94,11 +94,30 @@ const isGitHubRelease = (object: unknown): object is GitHubRelease =>
     object.assets.every(asset => isGitHubReleaseArtifact(asset));
 
 export class GitHubService {
+    public async checkIfReleasesExist(repositorySlug: string): Promise<boolean> {
+        const response = await fetch(`https://api.github.com/repos/${repositorySlug}/releases`, {
+            headers: {
+                Authorization: `token ${await this.runtimeConfigurationService.getRuntimeConfigurationKey(
+                    'gitHubToken',
+                )}`,
+                Accept: 'application/vnd.github+json',
+            },
+        });
+
+        if (!response.ok) {
+            throw new HttpExceptionError(response.status, repositorySlug);
+        }
+
+        const jsonResponse = await response.json();
+
+        return Array.isArray(jsonResponse) && jsonResponse.length > 0;
+    }
+
     public constructor(
         private runtimeConfigurationService = RuntimeConfigurationService.getInstance(),
     ) {}
 
-    private async fetchContentAPI({
+    private async fetchContent({
         repositorySlug,
         path,
         ref,
@@ -121,7 +140,7 @@ export class GitHubService {
         );
 
         if (!response.ok) {
-            throw new HttpExceptionError(response.statusText, repositorySlug, path, ref);
+            throw new HttpExceptionError(response.status, repositorySlug, path, ref);
         }
 
         const jsonResponse = await response.json();
@@ -142,7 +161,7 @@ export class GitHubService {
         ref?: string;
         repositorySlug: string;
     }): Promise<GitHubContentFile> {
-        const contentBaseTypeResponse = await this.fetchContentAPI({ repositorySlug, path, ref });
+        const contentBaseTypeResponse = await this.fetchContent({ repositorySlug, path, ref });
 
         if (isGitHubContentFile(contentBaseTypeResponse)) {
             return contentBaseTypeResponse;
@@ -220,7 +239,7 @@ export class GitHubService {
         );
 
         if (!response.ok) {
-            throw new HttpExceptionError(response.statusText, repositorySlug, undefined, ref);
+            throw new HttpExceptionError(response.status, repositorySlug, undefined, ref);
         }
 
         const jsonResponse = await response.json();
@@ -261,7 +280,7 @@ export class GitHubService {
         ref: string;
         repositorySlug: string;
     }): Promise<GitHubContentDirectoryList> {
-        const ContentBaseTypeResponse = await this.fetchContentAPI({ repositorySlug, path, ref });
+        const ContentBaseTypeResponse = await this.fetchContent({ repositorySlug, path, ref });
 
         if (!isGitHubContentDirectoryList(ContentBaseTypeResponse)) {
             throw new InvalidGitHubResponseError(repositorySlug, ref);
