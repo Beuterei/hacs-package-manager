@@ -19,6 +19,7 @@ import { InvalidHacsConfigError } from './errors/invalid-hacs-config-error.excep
 import { InvalidHpmFileError } from './errors/invalid-hpm-file-error.exception';
 import { GitHubService } from './github.service';
 import { $ } from 'bun';
+import Zip from 'jszip';
 
 // Define a map of category to dependency service
 const categoryToDependencyService: { [key in keyof Defaults]: CategoryDependencyService } = {
@@ -263,19 +264,20 @@ export class DependencyService {
 
         if ('releaseUrl' in hpmDependency) {
             if (hpmDependency.hacsConfig.zipRelease) {
-                const cachePath = await this.cacheService.getCachePath();
-
                 const zipArrayBuffer = await (await fetch(hpmDependency.releaseUrl)).arrayBuffer();
 
-                const zipFile = Bun.file(
-                    `${cachePath}/${hpmDependency.releaseUrl.split('/').pop()}`,
-                );
+                const zip = await new Zip().loadAsync(zipArrayBuffer);
 
-                await Bun.write(zipFile, zipArrayBuffer);
+                for (const [relativePath, zipEntry] of Object.entries(zip.files)) {
+                    if (zipEntry.dir) {
+                        await $`mkdir -p ${localDependencyPath}/${relativePath}`;
+                        continue;
+                    }
 
-                await $`unzip -o ${zipFile} -d ${localDependencyPath}`.quiet();
+                    const content = await zipEntry.async('nodebuffer');
 
-                await $`rm -rf ${zipFile}`;
+                    await Bun.write(`${localDependencyPath}/${relativePath}`, content);
+                }
 
                 return;
             }

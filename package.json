@@ -20,7 +20,8 @@
   },
   "type": "module",
   "dependencies": {
-    "citty": "^0.1.5"
+    "citty": "^0.1.5",
+    "jszip": "3.10.1"
   },
   "lint-staged": {
     "*.{js,ts,json,yml,yaml}": [

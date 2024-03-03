@@ -12,6 +12,7 @@ export interface HpmDependencyFiles extends HpmDependencyBase {
 }
 
 export interface HpmDependencyZipRelease extends HpmDependencyBase {
+    localReferences: string[];
     releaseUrl: string;
 }
 

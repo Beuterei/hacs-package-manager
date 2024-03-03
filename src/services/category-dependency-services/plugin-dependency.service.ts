@@ -15,7 +15,10 @@ export class PluginDependencyService implements CategoryDependencyService {
         ref: string,
         refType: 'tag' | 'commit',
         hacsConfig: HpmDependency['hacsConfig'],
-    ): Promise<{ remoteFiles: string[] } | { ref: string; refType: 'tag'; releaseUrl: string }> {
+    ): Promise<
+        | { remoteFiles: string[] }
+        | { localReferences: string[]; ref: string; refType: 'tag'; releaseUrl: string }
+    > {
         const directoryListResponse = await this.gitHubService.resolveDirectory({
             repositorySlug,
             ref,
@@ -71,6 +74,7 @@ export class PluginDependencyService implements CategoryDependencyService {
             releaseUrl: filteredAssets[0].browser_download_url,
             ref: releaseRef,
             refType: 'tag',
+            localReferences: [filteredAssets[0].name],
         };
     }
 }
