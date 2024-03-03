@@ -36,9 +36,9 @@ export const categoryBasePaths: { [key in keyof Defaults]: string } = {
     appdaemon: 'appdaemon/apps',
     integration: 'custom_components',
     netdaemon: 'netdaemon/apps',
-    plugin: 'custom_components',
+    plugin: 'www/community',
     pythonScript: 'python_scripts',
-    template: 'templates',
+    template: 'custom_templates',
     theme: 'themes',
 };
 
@@ -250,6 +250,7 @@ export class DependencyService {
             for (const file of hpmDependency.remoteFiles) {
                 // eslint-disable-next-line @typescript-eslint/no-shadow
                 const localDependencyPath = dependencyService.getLocalDependencyPath(
+                    categoryBasePaths[hpmDependency.category],
                     haConfigPath,
                     repositorySlug,
                     file,

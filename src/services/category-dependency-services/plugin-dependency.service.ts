@@ -19,16 +19,29 @@ export class PluginDependencyService implements CategoryDependencyService {
         | { remoteFiles: string[] }
         | { localReferences: string[]; ref: string; refType: 'tag'; releaseUrl: string }
     > {
-        const directoryListResponse = await this.gitHubService.resolveDirectory({
-            repositorySlug,
-            ref,
-            path:
-                typeof hacsConfig.contentInRoot === 'boolean'
-                    ? hacsConfig.contentInRoot
-                        ? ''
-                        : 'dist'
-                    : '',
-        });
+        let directoryListResponse: string[] = [];
+
+        if (typeof hacsConfig.contentInRoot === 'boolean') {
+            directoryListResponse = await this.gitHubService.resolveDirectory({
+                repositorySlug,
+                ref,
+                path: hacsConfig.contentInRoot ? '' : 'dist',
+            });
+        } else {
+            directoryListResponse = await this.gitHubService.resolveDirectory({
+                repositorySlug,
+                ref,
+                path: 'dist',
+            });
+
+            if (directoryListResponse.length === 0) {
+                directoryListResponse = await this.gitHubService.resolveDirectory({
+                    repositorySlug,
+                    ref,
+                    path: '',
+                });
+            }
+        }
 
         const filterFileNames = (fileName: string): boolean => {
             const repoName = repositorySlug.split('/')[1];
