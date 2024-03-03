@@ -18,8 +18,8 @@ import { InvalidCategoryError } from './errors/invalid-category-error.exception'
 import { InvalidHacsConfigError } from './errors/invalid-hacs-config-error.exception';
 import { InvalidHpmFileError } from './errors/invalid-hpm-file-error.exception';
 import { GitHubService } from './github.service';
-import { $ } from 'bun';
 import Zip from 'jszip';
+import { existsSync, mkdirSync, rmSync } from 'node:fs';
 
 // Define a map of category to dependency service
 const categoryToDependencyService: { [key in keyof Defaults]: CategoryDependencyService } = {
@@ -30,6 +30,16 @@ const categoryToDependencyService: { [key in keyof Defaults]: CategoryDependency
     pythonScript: new PythonScriptDependencyService(),
     template: new TemplateDependencyService(),
     theme: new ThemeDependencyService(),
+};
+
+export const categoryBasePaths: { [key in keyof Defaults]: string } = {
+    appdaemon: 'appdaemon/apps',
+    integration: 'custom_components',
+    netdaemon: 'netdaemon/apps',
+    plugin: 'custom_components',
+    pythonScript: 'python_scripts',
+    template: 'templates',
+    theme: 'themes',
 };
 
 export class DependencyService {
@@ -95,6 +105,15 @@ export class DependencyService {
         await this.writeDependency(configPath, repositorySlug, hpmDependency);
 
         return hpmDependency;
+    }
+
+    public async cleanLocalDependencies(haConfigPath: string): Promise<void> {
+        // TODO: filter out the dependency persistance folders
+        for (const basePath of Object.values(categoryBasePaths)) {
+            if (existsSync(`${haConfigPath}/${basePath}`)) {
+                rmSync(`${haConfigPath}/${basePath}`, { recursive: true });
+            }
+        }
     }
 
     public static constructSubDirectory = (repositorySlug: string, remoteFile?: string): string => {
@@ -236,8 +255,7 @@ export class DependencyService {
                     file,
                 );
 
-                // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                await $`mkdir -p ${localDependencyPath}`;
+                mkdirSync(localDependencyPath, { recursive: true });
 
                 const remoteFile = await this.gitHubService.fetchFile({
                     repositorySlug,
@@ -255,12 +273,12 @@ export class DependencyService {
         }
 
         const localDependencyPath = dependencyService.getLocalDependencyPath(
+            categoryBasePaths[hpmDependency.category],
             haConfigPath,
             repositorySlug,
         );
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        await $`mkdir -p ${localDependencyPath}`;
+        mkdirSync(localDependencyPath, { recursive: true });
 
         if ('releaseUrl' in hpmDependency) {
             if (hpmDependency.hacsConfig.zipRelease) {
@@ -270,7 +288,7 @@ export class DependencyService {
 
                 for (const [relativePath, zipEntry] of Object.entries(zip.files)) {
                     if (zipEntry.dir) {
-                        await $`mkdir -p ${localDependencyPath}/${relativePath}`;
+                        mkdirSync(`${localDependencyPath}/${relativePath}`, { recursive: true });
                         continue;
                     }
 

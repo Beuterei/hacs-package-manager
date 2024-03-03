@@ -6,8 +6,8 @@ import type { CategoryDependencyService } from './category-dependency-service.in
 export class ThemeDependencyService implements CategoryDependencyService {
     public constructor(private gitHubService = new GitHubService()) {}
 
-    public getLocalDependencyPath(haConfigPath: string): string {
-        return `${haConfigPath}/themes/`;
+    public getLocalDependencyPath(categoryBasePath: string, haConfigPath: string): string {
+        return `${haConfigPath}/${categoryBasePath}/`;
     }
 
     public async resolveDependencyArtifacts(

@@ -2,6 +2,7 @@ import type { HpmDependency } from '../../shared/hpm';
 
 export interface CategoryDependencyService {
     getLocalDependencyPath: (
+        categoryBasePath: string,
         haConfigPath: string,
         repositorySlug: string,
         remoteFile?: string,

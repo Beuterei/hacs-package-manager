@@ -5,8 +5,8 @@ import type { CategoryDependencyService } from './category-dependency-service.in
 export class TemplateDependencyService implements CategoryDependencyService {
     public constructor(private gitHubService = new GitHubService()) {}
 
-    public getLocalDependencyPath(haConfigPath: string): string {
-        return `${haConfigPath}/custom_templates/`;
+    public getLocalDependencyPath(categoryBasePath: string, haConfigPath: string): string {
+        return `${haConfigPath}/${categoryBasePath}/`;
     }
 
     public async resolveDependencyArtifacts(

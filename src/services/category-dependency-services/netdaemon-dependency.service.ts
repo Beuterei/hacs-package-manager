@@ -7,11 +7,12 @@ export class NetdaemonDependencyService implements CategoryDependencyService {
     public constructor(private gitHubService = new GitHubService()) {}
 
     public getLocalDependencyPath(
+        categoryBasePath: string,
         haConfigPath: string,
         repositorySlug: string,
         remoteFile?: string,
     ): string {
-        return `${haConfigPath}/netdaemon/apps/${constructSubDirectory(
+        return `${haConfigPath}/${categoryBasePath}/${constructSubDirectory(
             repositorySlug,
             remoteFile,
         )}/`;

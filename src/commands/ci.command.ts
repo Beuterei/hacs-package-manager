@@ -5,8 +5,9 @@ import { defineCommand } from 'citty';
 
 export default defineCommand({
     meta: {
-        name: 'install',
-        description: 'Installs all dependencies defined in the hpm.json file.',
+        name: 'ci',
+        description:
+            'Installs all dependencies defined in the hpm.json file. Before installing in removes all local dependencies files to ensure a clean install.',
     },
     args: {
         haConfigPath: {
@@ -36,6 +37,10 @@ export default defineCommand({
         let errorOccurred = false; // Add an error flag
 
         const spinner = new Spinner();
+
+        spinner.start('Clean local dependencies...');
+        await dependencyService.cleanLocalDependencies(haConfigPath);
+        spinner.done('Cleaned local dependencies.');
 
         for (const [, repositorySlug] of Object.keys(dependencies).entries()) {
             if (Object.prototype.hasOwnProperty.call(dependencies, repositorySlug)) {
