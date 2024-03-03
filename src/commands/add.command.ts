@@ -10,9 +10,7 @@ export default defineCommand({
     },
     args: {
         configPath: {
-            description:
-                // eslint-disable-next-line no-template-curly-in-string
-                'Path to the hpm.json file relative to the current working directory.',
+            description: 'Path to the hpm.json file relative to the current working directory.',
             type: 'string',
             alias: 'c',
             default: 'hpm.json',

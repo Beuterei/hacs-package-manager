@@ -328,6 +328,24 @@ export class DependencyService {
         return parsed as HpmDependencies;
     }
 
+    public async removeDependency(
+        configPath: string,
+        haConfigPath: string,
+        repositorySlug: string,
+    ): Promise<void> {
+        const hpmDependencies = await this.readDependenciesFile(configPath);
+
+        if (!hpmDependencies[repositorySlug]) {
+            throw new DependencyNotFoundError(repositorySlug);
+        }
+
+        // TODO: Remove the local files
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        delete hpmDependencies[repositorySlug];
+
+        await Bun.write(Bun.file(configPath), JSON.stringify(hpmDependencies, null, 2));
+    }
+
     public async writeDependency(
         configPath: string,
         repositorySlug: string,
