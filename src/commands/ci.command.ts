@@ -39,7 +39,7 @@ export default defineCommand({
         const spinner = new Spinner();
 
         spinner.start('Clean local dependencies...');
-        await dependencyService.cleanLocalDependencies(haConfigPath);
+        await dependencyService.cleanLocalDependencies(haConfigPath, configPath);
         spinner.done('Cleaned local dependencies.');
 
         for (const [, repositorySlug] of Object.keys(dependencies).entries()) {

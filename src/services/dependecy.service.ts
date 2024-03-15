@@ -1,6 +1,8 @@
 import { HacsConfigMapper } from '../mappers/hacsConfig.mapper';
 import { type Defaults, type HacsConfig, isRemoteHacsConfig } from '../shared/hacs';
 import type { HpmDependencies, HpmDependency } from '../shared/hpm';
+import { constructSubDirectory } from '../util/dependency.helper';
+import { getFiles } from '../util/io.helper';
 import { CacheService } from './cache.service';
 import { AppdaemonDependencyService } from './category-dependency-services/appdaemon-dependency.service';
 import type { CategoryDependencyService } from './category-dependency-services/category-dependency-service.interface';
@@ -107,28 +109,45 @@ export class DependencyService {
         return hpmDependency;
     }
 
-    public async cleanLocalDependencies(haConfigPath: string): Promise<void> {
-        // TODO: filter out the dependency persistance folders
+    public async cleanLocalDependencies(haConfigPath: string, configPath: string): Promise<void> {
+        const dependencies = await this.getDependencies(configPath);
+
+        const persistentDirectories: string[] = [];
+
+        for (const [repositorySlug, hpmDependency] of Object.entries(dependencies)) {
+            if (
+                'persistentDirectory' in hpmDependency.hacsConfig &&
+                hpmDependency.hacsConfig.persistentDirectory
+            ) {
+                // TODO: Use a better method to construct the subdirectory then to use the remoteFiles array
+                const subDirectory = constructSubDirectory(
+                    repositorySlug,
+                    'remoteFiles' in hpmDependency ? hpmDependency.remoteFiles[0] : undefined,
+                );
+
+                persistentDirectories.push(
+                    `${subDirectory.split('/')[0]}/${hpmDependency.hacsConfig.persistentDirectory}`,
+                );
+            }
+        }
+
         for (const basePath of Object.values(categoryBasePaths)) {
             if (existsSync(`${haConfigPath}/${basePath}`)) {
-                rmSync(`${haConfigPath}/${basePath}`, { recursive: true });
+                if (basePath === categoryBasePaths.integration) {
+                    const files = getFiles(`${haConfigPath}/${basePath}`).filter(
+                        file => !persistentDirectories.some(directory => file.includes(directory)),
+                    );
+
+                    // TODO: Handle empty directories that are being left by this method
+                    for (const file of files) {
+                        rmSync(file);
+                    }
+                } else {
+                    rmSync(`${haConfigPath}/${basePath}`, { recursive: true });
+                }
             }
         }
     }
-
-    public static constructSubDirectory = (repositorySlug: string, remoteFile?: string): string => {
-        if (remoteFile) {
-            const remoteFileParts = remoteFile
-                .split('/')
-                .filter(part => part !== 'apps')
-                .slice(0, -1);
-            if (remoteFileParts.length >= 1) {
-                return remoteFileParts.join('/');
-            }
-        }
-
-        return repositorySlug.split('/')[1];
-    };
 
     public constructor(
         private cacheService = CacheService.getInstance(),

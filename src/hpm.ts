@@ -21,4 +21,8 @@ const main = defineCommand({
     },
 });
 
+// TODO: ? Add local clan-up command for all
+// TODO: ? Add local clan-up command for one dep
+// TODO: ? Add param to ci command to select categories
+
 void runMain(main);
