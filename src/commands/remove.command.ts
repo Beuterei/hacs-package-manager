@@ -5,7 +5,7 @@ import { defineCommand } from 'citty';
 
 export default defineCommand({
     meta: {
-        name: 'remove [dependencies...]',
+        name: 'remove [DEPENDENCIES...]',
         description: 'Removes a particular package or multiple packages from home assistant',
     },
     args: {
@@ -13,7 +13,7 @@ export default defineCommand({
             description:
                 'Path where to install dependencies relative to the current working directory.',
             type: 'string',
-            alias: 'p',
+            alias: 'h',
             default: process.cwd(),
             required: false,
         },

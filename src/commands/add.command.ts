@@ -5,7 +5,7 @@ import { defineCommand } from 'citty';
 
 export default defineCommand({
     meta: {
-        name: 'add [dependencies...]',
+        name: 'add [DEPENDENCIES...]',
         description: 'Adds a particular package or multiple packages to home assistant',
     },
     args: {
