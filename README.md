@@ -153,6 +153,31 @@ The package manager caches [default repositories](https://github.com/hacs/defaul
 
 This can currently not be changed.
 
+## Local development
+
+You can use the `dev` commands to help you with local development.
+
+### Add all dependencies of a category
+
+Adds all dependencies of a category to home assistant.
+
+```bash
+hpm dev test add [OPTIONS] <TYPE>
+```
+
+#### Arguments
+
+- `TYPE`: The type of the dependencies to add. (`appdaemon`, `integration`, `netdaemon`, `plugin`, `pythonScript`, `template`, `theme`)
+
+#### Options
+
+- `--deleteHpm"`: Delete the hpm file before adding the dependencies.
+
+## TODOs
+
+- [ ] Add tests
+- [ ] Add CI/CD
+
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 
