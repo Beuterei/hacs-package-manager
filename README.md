@@ -56,7 +56,17 @@ We never know where the user wants to install the dependencies. We only know wha
 
 ## Installation
 
-tbd
+```bash
+brew install Beuterei/homebrew-tap/hpm
+```
+
+or without brew
+
+```bash
+# installs to /usr/local/bin/hpm
+curl -L https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm >/usr/local/bin/hpm
+chmod 0755 /usr/local/bin/hpm
+```
 
 ## Usage
 
