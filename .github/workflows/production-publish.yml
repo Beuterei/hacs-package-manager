@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://github.com/Beuterei/hacs-package-manager/releases/download/${{ github.ref }}/hpm
+      url: https://github.com/Beuterei/hacs-package-manager/releases/download/${{ github.ref_name }}/hpm
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
