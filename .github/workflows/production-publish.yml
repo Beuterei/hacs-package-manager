@@ -7,7 +7,7 @@ on:
 
 jobs:
   building:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     environment:
       name: production
       url: https://github.com/Beuterei/hacs-package-manager/releases/download/${{ github.ref_name }}/hpm
