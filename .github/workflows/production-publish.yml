@@ -1,0 +1,30 @@
+name: 'Publish a new version'
+
+on:
+  release:
+    types:
+      - created
+
+jobs:
+  building:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.0.30
+
+      - name: Install dependencies
+        run: bun ci
+
+      - name: Build project
+        run: bun build src/hpm.ts --compile --minify
+
+      - name: Upload Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hpm
+          path: hpm
