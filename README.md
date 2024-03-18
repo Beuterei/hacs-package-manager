@@ -65,7 +65,7 @@ or without brew
 ```bash
 # installs to /usr/local/bin/hpm
 curl -L https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm >/usr/local/bin/hpm
-chmod 0755 /usr/local/bin/hpm
+chmod +x /usr/local/bin/hpm
 ```
 
 ## Usage
