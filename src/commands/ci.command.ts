@@ -15,7 +15,7 @@ export default defineCommand({
                 // eslint-disable-next-line no-template-curly-in-string
                 'Path where to install dependencies relative to the current working directory.',
             type: 'string',
-            alias: 'h',
+            alias: 'a',
             default: process.cwd(),
             required: false,
         },

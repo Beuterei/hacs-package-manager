@@ -13,7 +13,7 @@ export default defineCommand({
             description:
                 'Path where to install dependencies relative to the current working directory.',
             type: 'string',
-            alias: 'h',
+            alias: 'a',
             default: process.cwd(),
             required: false,
         },

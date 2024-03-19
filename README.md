@@ -56,6 +56,8 @@ We never know where the user wants to install the dependencies. We only know wha
 
 ## Installation
 
+## MacOS
+
 ```bash
 brew install Beuterei/homebrew-tap/hpm
 ```
@@ -63,8 +65,14 @@ brew install Beuterei/homebrew-tap/hpm
 or without brew
 
 ```bash
-# installs to /usr/local/bin/hpm
-curl -L https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm >/usr/local/bin/hpm
+curl -L https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm-macos >/usr/local/bin/hpm
+chmod +x /usr/local/bin/hpm
+```
+
+## Linux
+
+```bash
+curl -L https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm-linux >/usr/local/bin/hpm
 chmod +x /usr/local/bin/hpm
 ```
 
@@ -156,6 +164,10 @@ hpm remove [DEPENDENCIES...] [OPTIONS]
 
 - `-c, --configPath="hpm.json"`: Path to the hpm.json file relative to the current working directory.
 - `-h, --haConfigPath="path/to/home-assistant"`: Path where to install dependencies relative to the current working directory.
+
+### Practical example
+
+Look at my own HA setup: https://github.com/Beuterei/home-assistant
 
 ## Caching
 

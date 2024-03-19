@@ -6,11 +6,11 @@ on:
       - created
 
 jobs:
-  building:
+  building-macos:
     runs-on: macos-latest
     environment:
       name: production
-      url: https://github.com/Beuterei/hacs-package-manager/releases/download/${{ github.ref_name }}/hpm
+      url: https://github.com/Beuterei/hacs-package-manager/releases/download/${{ github.ref_name }}/hpm-macos
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -33,5 +33,34 @@ jobs:
         with:
           upload_url: ${{ github.event.release.upload_url }}
           asset_path: hpm
-          asset_name: hpm
+          asset_name: hpm-macos
+          asset_content_type: application/octet-stream
+  building-linux:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://github.com/Beuterei/hacs-package-manager/releases/download/${{ github.ref_name }}/hpm-linux
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.0.30
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build project
+        run: bun build src/hpm.ts --compile --minify
+
+      - name: Upload Artifact to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.CI }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: hpm
+          asset_name: hpm-linux
           asset_content_type: application/octet-stream
