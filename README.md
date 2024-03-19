@@ -76,6 +76,13 @@ curl -L https://github.com/Beuterei/hacs-package-manager/releases/latest/downloa
 chmod +x /usr/local/bin/hpm
 ```
 
+## ARM/M1
+
+```bash
+curl -L https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm-arm >/usr/local/bin/hpm
+chmod +x /usr/local/bin/hpm
+```
+
 ## Usage
 
 The API is inspired by the `yarn` and `npm` package manager. The following commands are available:

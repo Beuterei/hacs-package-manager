@@ -19,7 +19,7 @@ jobs:
             name: arm
     environment:
       name: production-${{ matrix.cross.name }}
-      url: https://github.com/Beuterei/hacs-package-manager/releases/download/${{ github.ref_name }}/hpm-${{ matrix.ross.name }}
+      url: https://github.com/Beuterei/hacs-package-manager/releases/download/${{ github.ref_name }}/hpm-${{ matrix.cross.name }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -42,5 +42,5 @@ jobs:
         with:
           upload_url: ${{ github.event.release.upload_url }}
           asset_path: hpm
-          asset_name: hpm-${{ matrix.ross.name }}
+          asset_name: hpm-${{ matrix.cross.name }}
           asset_content_type: application/octet-stream
