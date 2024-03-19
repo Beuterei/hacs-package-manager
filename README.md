@@ -107,7 +107,7 @@ hpm ci [OPTIONS]
 #### Options
 
 - `-c, --configPath="hpm.json"`: Path to the hpm.json file relative to the current working directory.
-- `-h, --haConfigPath="path/to/home-assistant"`: Path where to install dependencies relative to the current working directory.
+- `-a, --haConfigPath="path/to/home-assistant"`: Path where to install dependencies relative to the current working directory.
 
 ### Configuration
 
@@ -163,7 +163,7 @@ hpm remove [DEPENDENCIES...] [OPTIONS]
 #### Options
 
 - `-c, --configPath="hpm.json"`: Path to the hpm.json file relative to the current working directory.
-- `-h, --haConfigPath="path/to/home-assistant"`: Path where to install dependencies relative to the current working directory.
+- `-a, --haConfigPath="path/to/home-assistant"`: Path where to install dependencies relative to the current working directory.
 
 ### Practical example
 
