@@ -7,14 +7,19 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.cross.os }}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, macos-14]
-        os_short: [macos, linux, arm]
+        cross:
+          - os: macos-latest
+            name: macos
+          - os: ubuntu-latest
+            name: linux
+          - os: macos-14
+            name: arm
     environment:
-      name: production-${{ matrix.os_short }}
-      url: https://github.com/Beuterei/hacs-package-manager/releases/download/${{ github.ref_name }}/hpm-${{ matrix.os_short }}
+      name: production-${{ matrix.cross.name }}
+      url: https://github.com/Beuterei/hacs-package-manager/releases/download/${{ github.ref_name }}/hpm-${{ matrix.ross.name }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -37,5 +42,5 @@ jobs:
         with:
           upload_url: ${{ github.event.release.upload_url }}
           asset_path: hpm
-          asset_name: hpm-${{ matrix.os_short }}
+          asset_name: hpm-${{ matrix.ross.name }}
           asset_content_type: application/octet-stream
