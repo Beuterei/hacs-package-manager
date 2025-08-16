@@ -138,14 +138,14 @@ chmod +x /usr/local/bin/hpm
 
 ```powershell
 # Using PowerShell
-Invoke-WebRequest -Uri "https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm-windows-x64-modern" -OutFile "hpm.exe"
+Invoke-WebRequest -Uri "https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm-windows-x64-modern.exe" -OutFile "hpm.exe"
 ```
 
 ### Older CPUs (baseline)
 
 ```powershell
 # Using PowerShell
-Invoke-WebRequest -Uri "https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm-windows-x64-baseline" -OutFile "hpm.exe"
+Invoke-WebRequest -Uri "https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm-windows-x64-baseline.exe" -OutFile "hpm.exe"
 ```
 
 Note: Add the downloaded `hpm.exe` to your system PATH to use it from anywhere.
