@@ -1,4 +1,4 @@
-import type { HpmDependency } from '../../shared/hpm';
+import { type HpmDependency } from '../../shared/hpm';
 import { TypeBusinessError } from './type-business-error.exception';
 
 export class NoCategoryFilesFoundError extends TypeBusinessError {

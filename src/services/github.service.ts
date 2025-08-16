@@ -3,9 +3,13 @@ import { InvalidGitHubResponseError } from './errors/invalid-git-hub-response-er
 import { InvalidRefTypeError } from './errors/invalid-ref-type-error.exception';
 import { RuntimeConfigurationService } from './runtime-configuration.service';
 
-interface GitHubContentListItemBase {
+type GitHubContentDirectoryList = Array<GitHubContentListDirectoryItem | GitHubContentListFileItem>;
+
+interface GitHubContentFile {
+    content: string;
     name: string;
     path: string;
+    type: 'file';
 }
 
 interface GitHubContentListDirectoryItem extends GitHubContentListItemBase {
@@ -16,18 +20,9 @@ interface GitHubContentListFileItem extends GitHubContentListItemBase {
     type: 'file';
 }
 
-type GitHubContentDirectoryList = Array<GitHubContentListDirectoryItem | GitHubContentListFileItem>;
-
-interface GitHubContentFile {
-    content: string;
+interface GitHubContentListItemBase {
     name: string;
     path: string;
-    type: 'file';
-}
-
-interface GitHubReleaseArtifact {
-    browser_download_url: string;
-    name: string;
 }
 
 interface GitHubRelease {
@@ -35,9 +30,14 @@ interface GitHubRelease {
     tag_name: string;
 }
 
+interface GitHubReleaseArtifact {
+    browser_download_url: string;
+    name: string;
+}
+
 interface MatchedRef {
     matchedRef: string;
-    matchedRefType: 'tag' | 'commit' | 'head';
+    matchedRefType: 'commit' | 'head' | 'tag';
 }
 
 const isGitHubContentListItemBase = (object: unknown): object is GitHubContentListItemBase =>
@@ -91,20 +91,24 @@ const isGitHubRelease = (object: unknown): object is GitHubRelease =>
     typeof object.tag_name === 'string' &&
     'assets' in object &&
     Array.isArray(object.assets) &&
-    object.assets.every(asset => isGitHubReleaseArtifact(asset));
+    object.assets.every((asset) => isGitHubReleaseArtifact(asset));
 
 export class GitHubService {
+    public constructor(
+        private runtimeConfigurationService = RuntimeConfigurationService.getInstance(),
+    ) {}
+
     public async checkIfFileExists({
-        repositorySlug,
         path,
         ref,
+        repositorySlug,
     }: {
         path: string;
         ref?: string;
         repositorySlug: string;
     }): Promise<boolean> {
         try {
-            await this.fetchFile({ repositorySlug, path, ref });
+            await this.fetchFile({ path, ref, repositorySlug });
             return true;
         } catch (error) {
             if (error instanceof HttpExceptionError && error.status === 404) {
@@ -118,10 +122,10 @@ export class GitHubService {
     public async checkIfReleasesExist(repositorySlug: string): Promise<boolean> {
         const response = await fetch(`https://api.github.com/repos/${repositorySlug}/releases`, {
             headers: {
+                Accept: 'application/vnd.github+json',
                 Authorization: `token ${await this.runtimeConfigurationService.getRuntimeConfigurationKey(
                     'gitHubToken',
                 )}`,
-                Accept: 'application/vnd.github+json',
             },
         });
 
@@ -134,55 +138,16 @@ export class GitHubService {
         return Array.isArray(jsonResponse) && jsonResponse.length > 0;
     }
 
-    public constructor(
-        private runtimeConfigurationService = RuntimeConfigurationService.getInstance(),
-    ) {}
-
-    private async fetchContent({
-        repositorySlug,
-        path,
-        ref,
-    }: {
-        path: string;
-        ref?: string;
-        repositorySlug: string;
-    }): Promise<GitHubContentDirectoryList | GitHubContentFile> {
-        const refQuery = ref ? `?ref=${ref}` : '';
-        const response = await fetch(
-            `https://api.github.com/repos/${repositorySlug}/contents/${path}${refQuery}`,
-            {
-                headers: {
-                    Authorization: `token ${await this.runtimeConfigurationService.getRuntimeConfigurationKey(
-                        'gitHubToken',
-                    )}`,
-                    Accept: 'application/vnd.github+json',
-                },
-            },
-        );
-
-        if (!response.ok) {
-            throw new HttpExceptionError(response.status, repositorySlug, path, ref);
-        }
-
-        const jsonResponse = await response.json();
-
-        if (!isGitHubContentFile(jsonResponse) && !isGitHubContentDirectoryList(jsonResponse)) {
-            throw new InvalidGitHubResponseError(repositorySlug, ref);
-        }
-
-        return jsonResponse;
-    }
-
     public async fetchFile({
-        repositorySlug,
         path,
         ref,
+        repositorySlug,
     }: {
         path: string;
         ref?: string;
         repositorySlug: string;
     }): Promise<GitHubContentFile> {
-        const contentBaseTypeResponse = await this.fetchContent({ repositorySlug, path, ref });
+        const contentBaseTypeResponse = await this.fetchContent({ path, ref, repositorySlug });
 
         if (isGitHubContentFile(contentBaseTypeResponse)) {
             return contentBaseTypeResponse;
@@ -196,10 +161,10 @@ export class GitHubService {
             `https://api.github.com/repos/${repositorySlug}/commits?per_page=1`,
             {
                 headers: {
+                    Accept: 'application/vnd.github+json',
                     Authorization: `token ${await this.runtimeConfigurationService.getRuntimeConfigurationKey(
                         'gitHubToken',
                     )}`,
-                    Accept: 'application/vnd.github+json',
                 },
             },
         );
@@ -223,10 +188,10 @@ export class GitHubService {
             `https://api.github.com/repos/${repositorySlug}/releases/latest`,
             {
                 headers: {
+                    Accept: 'application/vnd.github+json',
                     Authorization: `token ${await this.runtimeConfigurationService.getRuntimeConfigurationKey(
                         'gitHubToken',
                     )}`,
-                    Accept: 'application/vnd.github+json',
                 },
             },
         );
@@ -241,8 +206,8 @@ export class GitHubService {
     }
 
     public async fetchRelease({
-        repositorySlug,
         ref,
+        repositorySlug,
     }: {
         ref: string;
         repositorySlug: string;
@@ -251,10 +216,10 @@ export class GitHubService {
             `https://api.github.com/repos/${repositorySlug}/releases/tags/${ref}`,
             {
                 headers: {
+                    Accept: 'application/vnd.github+json',
                     Authorization: `token ${await this.runtimeConfigurationService.getRuntimeConfigurationKey(
                         'gitHubToken',
                     )}`,
-                    Accept: 'application/vnd.github+json',
                 },
             },
         );
@@ -273,16 +238,16 @@ export class GitHubService {
     }
 
     public async fetchReleaseArtifact({
-        repositorySlug,
         path,
         ref,
+        repositorySlug,
     }: {
         path: string;
         ref: string;
         repositorySlug: string;
     }): Promise<GitHubReleaseArtifact> {
-        const foundAsset = (await this.fetchRelease({ repositorySlug, ref })).assets.find(
-            asset => asset.name === path,
+        const foundAsset = (await this.fetchRelease({ ref, repositorySlug })).assets.find(
+            (asset) => asset.name === path,
         );
 
         if (!foundAsset) {
@@ -293,15 +258,15 @@ export class GitHubService {
     }
 
     public async listDirectory({
-        repositorySlug,
         path,
         ref,
+        repositorySlug,
     }: {
         path: string;
         ref: string;
         repositorySlug: string;
     }): Promise<GitHubContentDirectoryList> {
-        const ContentBaseTypeResponse = await this.fetchContent({ repositorySlug, path, ref });
+        const ContentBaseTypeResponse = await this.fetchContent({ path, ref, repositorySlug });
 
         if (!isGitHubContentDirectoryList(ContentBaseTypeResponse)) {
             throw new InvalidGitHubResponseError(repositorySlug, ref);
@@ -318,16 +283,16 @@ export class GitHubService {
         unresolvedRef: string;
     }): Promise<MatchedRef> {
         const tryResolveRef = async (
-            typeToCheckFor: 'tag' | 'commit' | 'head',
+            typeToCheckFor: 'commit' | 'head' | 'tag',
         ): Promise<MatchedRef | undefined> => {
             const response = await fetch(
                 `https://api.github.com/repos/${repositorySlug}/git/matching-refs/${typeToCheckFor}s/${unresolvedRef}`,
                 {
                     headers: {
+                        Accept: 'application/vnd.github+json',
                         Authorization: `token ${await this.runtimeConfigurationService.getRuntimeConfigurationKey(
                             'gitHubToken',
                         )}`,
-                        Accept: 'application/vnd.github+json',
                     },
                 },
             );
@@ -357,10 +322,10 @@ export class GitHubService {
                 `https://api.github.com/repos/${repositorySlug}/commits/${unresolvedRef}`,
                 {
                     headers: {
+                        Accept: 'application/vnd.github+json',
                         Authorization: `token ${await this.runtimeConfigurationService.getRuntimeConfigurationKey(
                             'gitHubToken',
                         )}`,
-                        Accept: 'application/vnd.github+json',
                     },
                 },
             );
@@ -393,9 +358,9 @@ export class GitHubService {
      * Returns an empty array if the directory does not exist. This is not optimal but syntax sugar for the caller in most cases.
      */
     public async resolveDirectory({
-        repositorySlug,
         path,
         ref,
+        repositorySlug,
     }: {
         path: string;
         ref: string;
@@ -403,7 +368,7 @@ export class GitHubService {
     }): Promise<string[]> {
         let directoryListResponse;
         try {
-            directoryListResponse = await this.listDirectory({ repositorySlug, path, ref });
+            directoryListResponse = await this.listDirectory({ path, ref, repositorySlug });
         } catch (error) {
             if (error instanceof HttpExceptionError && error.status === 404) {
                 return [];
@@ -427,9 +392,9 @@ export class GitHubService {
      * Returns an empty array if the directory does not exist. This is not optimal but syntax sugar for the caller in most cases.
      */
     public async resolveDirectoryRecursively({
-        repositorySlug,
         path,
         ref,
+        repositorySlug,
     }: {
         path: string;
         ref: string;
@@ -437,7 +402,7 @@ export class GitHubService {
     }): Promise<string[]> {
         let directoryListResponse;
         try {
-            directoryListResponse = await this.listDirectory({ repositorySlug, path, ref });
+            directoryListResponse = await this.listDirectory({ path, ref, repositorySlug });
         } catch (error) {
             if (error instanceof HttpExceptionError && error.status === 404) {
                 return [];
@@ -453,14 +418,49 @@ export class GitHubService {
                 allFiles.push(item.path);
             } else if (isGitHubContentListDirectoryItem(item)) {
                 const subDirectoryFiles = await this.resolveDirectoryRecursively({
-                    repositorySlug,
-                    ref,
                     path: item.path,
+                    ref,
+                    repositorySlug,
                 });
                 allFiles = allFiles.concat(subDirectoryFiles);
             }
         }
 
         return allFiles;
+    }
+
+    private async fetchContent({
+        path,
+        ref,
+        repositorySlug,
+    }: {
+        path: string;
+        ref?: string;
+        repositorySlug: string;
+    }): Promise<GitHubContentDirectoryList | GitHubContentFile> {
+        const refQuery = ref ? `?ref=${ref}` : '';
+        const response = await fetch(
+            `https://api.github.com/repos/${repositorySlug}/contents/${path}${refQuery}`,
+            {
+                headers: {
+                    Accept: 'application/vnd.github+json',
+                    Authorization: `token ${await this.runtimeConfigurationService.getRuntimeConfigurationKey(
+                        'gitHubToken',
+                    )}`,
+                },
+            },
+        );
+
+        if (!response.ok) {
+            throw new HttpExceptionError(response.status, repositorySlug, path, ref);
+        }
+
+        const jsonResponse = await response.json();
+
+        if (!isGitHubContentFile(jsonResponse) && !isGitHubContentDirectoryList(jsonResponse)) {
+            throw new InvalidGitHubResponseError(repositorySlug, ref);
+        }
+
+        return jsonResponse;
     }
 }

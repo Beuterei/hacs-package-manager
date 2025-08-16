@@ -9,12 +9,12 @@ export interface Defaults {
 }
 
 export interface RemoteHacsConfig {
-    content_in_root?: boolean | 'true' | 'false';
+    content_in_root?: 'false' | 'true' | boolean;
     filename?: string;
-    hide_default_branch?: boolean | 'true' | 'false';
+    hide_default_branch?: 'false' | 'true' | boolean;
     name?: string;
     persistent_directory?: string;
-    zip_release?: boolean | 'true' | 'false';
+    zip_release?: 'false' | 'true' | boolean;
 }
 
 export const isRemoteHacsConfig = (object: unknown): object is RemoteHacsConfig =>

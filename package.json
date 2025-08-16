@@ -1,31 +1,29 @@
 {
   "name": "hacs-package-manager",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "module": "src/hpm.ts",
   "description": "A package manager for HACS",
   "devDependencies": {
-    "@beuluis/eslint-config": "^2.0.1",
-    "bun-types": "^1.0.26",
-    "eslint": "^8.53.0",
-    "husky": "^9.0.11",
-    "lint-staged": "^15.2.2",
-    "typescript": "^5.0.0"
-  },
-  "peerDependencies": {
-    "typescript": ">=5.0.0"
+    "@beuluis/eslint-config": "^3.0.1",
+    "bun-types": "^1.2.20",
+    "eslint": "^9.33.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.5",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.39.1"
   },
   "scripts": {
-    "lint": "eslint .",
+    "lint": "eslint . --cache",
     "prepare": "husky"
   },
   "type": "module",
   "dependencies": {
-    "citty": "^0.1.5",
+    "citty": "0.1.6",
     "jszip": "3.10.1"
   },
   "lint-staged": {
     "*.{js,ts,json,yml,yaml}": [
-      "eslint"
+      "eslint --cache"
     ]
   }
 }

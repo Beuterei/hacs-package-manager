@@ -1,7 +1,7 @@
-import type { HpmDependency } from '../../shared/hpm';
+import { type HpmDependency } from '../../shared/hpm';
 import { NoCategoryFilesFoundError } from '../errors/no-category-files-found-error.exception';
 import { GitHubService } from '../github.service';
-import type { CategoryDependencyService } from './category-dependency-service.interface';
+import { type CategoryDependencyService } from './category-dependency-service.interface';
 
 export class PythonScriptDependencyService implements CategoryDependencyService {
     public constructor(private gitHubService = new GitHubService()) {}
@@ -13,7 +13,7 @@ export class PythonScriptDependencyService implements CategoryDependencyService 
     public async resolveDependencyArtifacts(
         repositorySlug: string,
         ref: string,
-        refType: 'tag' | 'commit',
+        refType: 'commit' | 'tag',
         hacsConfig: HpmDependency['hacsConfig'],
     ): Promise<{ remoteFiles: string[] }> {
         const dependencyPath = 'python_scripts';
@@ -22,9 +22,9 @@ export class PythonScriptDependencyService implements CategoryDependencyService 
         if (filename) {
             if (
                 await this.gitHubService.checkIfFileExists({
-                    repositorySlug,
-                    ref,
                     path: `${dependencyPath}/${filename}`,
+                    ref,
+                    repositorySlug,
                 })
             ) {
                 return { remoteFiles: [`${dependencyPath}/${filename}`] };
@@ -34,12 +34,12 @@ export class PythonScriptDependencyService implements CategoryDependencyService 
         }
 
         const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
-            repositorySlug,
-            ref,
             path: dependencyPath,
+            ref,
+            repositorySlug,
         });
 
-        const filteredFiles = directoryListResponse.filter(file => file.endsWith('.py'));
+        const filteredFiles = directoryListResponse.filter((file) => file.endsWith('.py'));
 
         if (filteredFiles.length === 0) {
             throw new NoCategoryFilesFoundError(repositorySlug, ref, 'pythonScript');

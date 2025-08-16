@@ -5,23 +5,23 @@ import { $ } from 'bun';
 import { defineCommand } from 'citty';
 
 const add = defineCommand({
-    meta: {
-        name: 'add',
-        description: 'Tries to add all dependencies of the defined type.',
-    },
     args: {
-        type: {
-            description: 'The type of dependencies to add.',
-            type: 'positional',
-            required: true,
-        },
         deleteHpm: {
+            default: false,
             description: 'Delete the hpm file before adding the dependencies.',
             type: 'boolean',
-            default: false,
+        },
+        type: {
+            description: 'The type of dependencies to add.',
+            required: true,
+            type: 'positional',
         },
     },
-    run: async ({ args: { type, deleteHpm } }) => {
+    meta: {
+        description: 'Tries to add all dependencies of the defined type.',
+        name: 'add',
+    },
+    run: async ({ args: { deleteHpm, type } }) => {
         const configPath = `${process.cwd()}/hpm.json`;
 
         if (deleteHpm) {
@@ -54,8 +54,8 @@ const add = defineCommand({
 
 const test = defineCommand({
     meta: {
-        name: 'test',
         description: 'Test command for local development purposes.',
+        name: 'test',
     },
     subCommands: {
         add,
@@ -64,8 +64,8 @@ const test = defineCommand({
 
 export default defineCommand({
     meta: {
-        name: 'dev',
         description: 'Collection of commands for local development purposes.',
+        name: 'dev',
     },
     subCommands: {
         test,

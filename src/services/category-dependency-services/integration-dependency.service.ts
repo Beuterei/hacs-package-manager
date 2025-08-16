@@ -1,8 +1,8 @@
-import type { HpmDependency } from '../../shared/hpm';
+import { type HpmDependency } from '../../shared/hpm';
 import { constructSubDirectory } from '../../util/dependency.helper';
 import { NoCategoryFilesFoundError } from '../errors/no-category-files-found-error.exception';
 import { GitHubService } from '../github.service';
-import type { CategoryDependencyService } from './category-dependency-service.interface';
+import { type CategoryDependencyService } from './category-dependency-service.interface';
 
 export class IntegrationDependencyService implements CategoryDependencyService {
     public constructor(private gitHubService = new GitHubService()) {}
@@ -22,13 +22,13 @@ export class IntegrationDependencyService implements CategoryDependencyService {
     public async resolveDependencyArtifacts(
         repositorySlug: string,
         ref: string,
-        refType: 'tag' | 'commit',
+        refType: 'commit' | 'tag',
         hacsConfig: HpmDependency['hacsConfig'],
     ): Promise<{ remoteFiles: string[] }> {
         const directoryListResponse = await this.gitHubService.resolveDirectoryRecursively({
-            repositorySlug,
-            ref,
             path: hacsConfig.contentInRoot ? '' : 'custom_components',
+            ref,
+            repositorySlug,
         });
 
         if (directoryListResponse.length === 0) {

@@ -4,32 +4,29 @@ import { Spinner } from '../util/spinner.helper';
 import { defineCommand } from 'citty';
 
 export default defineCommand({
-    meta: {
-        name: 'ci',
-        description:
-            'Installs all dependencies defined in the hpm.json file. Before installing in removes all local dependencies files to ensure a clean install.',
-    },
     args: {
-        haConfigPath: {
-            description:
-                // eslint-disable-next-line no-template-curly-in-string
-                'Path where to install dependencies relative to the current working directory.',
-            type: 'string',
-            alias: 'a',
-            default: process.cwd(),
-            required: false,
-        },
         configPath: {
-            description:
-                // eslint-disable-next-line no-template-curly-in-string
-                'Path to the hpm.json file relative to the current working directory.',
-            type: 'string',
             alias: 'c',
             default: `${process.cwd()}/hpm.json`,
+            description: 'Path to the hpm.json file relative to the current working directory.',
             required: false,
+            type: 'string',
+        },
+        haConfigPath: {
+            alias: 'a',
+            default: process.cwd(),
+            description:
+                'Path where to install dependencies relative to the current working directory.',
+            required: false,
+            type: 'string',
         },
     },
-    run: async ({ args: { haConfigPath, configPath } }) => {
+    meta: {
+        description:
+            'Installs all dependencies defined in the hpm.json file. Before installing in removes all local dependencies files to ensure a clean install.',
+        name: 'ci',
+    },
+    run: async ({ args: { configPath, haConfigPath } }) => {
         const dependencyService = new DependencyService();
 
         const dependencies = await dependencyService.getDependencies(configPath);

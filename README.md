@@ -28,7 +28,7 @@ I use docker-containers to run home assistant. Since I am a big fan of configura
 
 The package manager is build on top of [hacs](https://hacs.xyz/) and its already established ecosystem and uses the hpm.json (Similar to `package.json` and `package-lock.json` in npm) file to manage the dependencies. It is a command line tool that allows you to add, remove and install dependencies to home assistant.
 
-I decided to mostly follow the concepts of hacs but decided to teak some aspects to enable and enforce CAC concepts.
+I decided to mostly follow the concepts of hacs but decided to tweak some aspects to enable and enforce CAC concepts.
 The main difference here is that, no matter the configuration of the repository provided for hacs, the package manager always resolves the corresponding git reference and uses this to pin the version of the dependency. That way, the package manager ensures that the configuration is always reproducible.
 
 ### `hpm.json` files idea and concept
@@ -56,32 +56,99 @@ We never know where the user wants to install the dependencies. We only know wha
 
 ## Installation
 
-## MacOS
+I do not have all of this OS architectures to verify each installation. Please open a issue if you find any problem.
+
+## macOS
+
+### Using Homebrew (Recommended)
 
 ```bash
 brew install Beuterei/homebrew-tap/hpm
 ```
 
-or without brew
+### Manual Installation
+
+#### Intel Macs (x64)
 
 ```bash
-curl -L https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm-macos >/usr/local/bin/hpm
+curl -L https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm-macos-x64 >/usr/local/bin/hpm
+chmod +x /usr/local/bin/hpm
+```
+
+#### Apple Silicon Macs (M1/M2/M3)
+
+```bash
+curl -L https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm-macos-arm64 >/usr/local/bin/hpm
 chmod +x /usr/local/bin/hpm
 ```
 
 ## Linux
 
+### Standard Linux (glibc)
+
+#### Modern CPUs (recommended)
+
 ```bash
-curl -L https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm-linux >/usr/local/bin/hpm
+curl -L https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm-linux-x64-modern >/usr/local/bin/hpm
 chmod +x /usr/local/bin/hpm
 ```
 
-## ARM/M1
+#### Older CPUs (baseline)
+
+```bash
+curl -L https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm-linux-x64-baseline >/usr/local/bin/hpm
+chmod +x /usr/local/bin/hpm
+```
+
+### Alpine Linux / musl
+
+#### Modern CPUs (recommended)
+
+```bash
+curl -L https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm-linux-x64-musl-modern >/usr/local/bin/hpm
+chmod +x /usr/local/bin/hpm
+```
+
+#### Older CPUs (baseline)
+
+```bash
+curl -L https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm-linux-x64-musl-baseline >/usr/local/bin/hpm
+chmod +x /usr/local/bin/hpm
+```
+
+### ARM64 (64-bit ARM)
+
+#### Standard Linux (glibc)
 
 ```bash
 curl -L https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm-arm >/usr/local/bin/hpm
 chmod +x /usr/local/bin/hpm
 ```
+
+#### Alpine Linux / musl
+
+```bash
+curl -L https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm-arm-musl >/usr/local/bin/hpm
+chmod +x /usr/local/bin/hpm
+```
+
+## Windows
+
+### Modern CPUs (recommended)
+
+```powershell
+# Using PowerShell
+Invoke-WebRequest -Uri "https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm-windows-x64-modern" -OutFile "hpm.exe"
+```
+
+### Older CPUs (baseline)
+
+```powershell
+# Using PowerShell
+Invoke-WebRequest -Uri "https://github.com/Beuterei/hacs-package-manager/releases/latest/download/hpm-windows-x64-baseline" -OutFile "hpm.exe"
+```
+
+Note: Add the downloaded `hpm.exe` to your system PATH to use it from anywhere.
 
 ## Usage
 

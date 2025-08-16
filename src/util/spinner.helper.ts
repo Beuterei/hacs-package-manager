@@ -1,6 +1,14 @@
 export class Spinner {
     private currentFrame: number = 0;
 
+    private frames: string[] = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+
+    private intervalId?: Timer;
+
+    private message?: string;
+
+    private speed: number = 100;
+
     public done(doneMessage?: string): void {
         this.stop(doneMessage);
     }
@@ -13,17 +21,9 @@ export class Spinner {
         this.stop(message, 'fail');
     }
 
-    private frames: string[] = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-
-    private intervalId?: Timer;
-
-    private message?: string;
-
     public setMessage(message: string): void {
         this.message = message;
     }
-
-    private speed: number = 100;
 
     public start(message: string): void {
         if (this.intervalId) {
