@@ -17,7 +17,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build project
-        run: bun build src/hpm.ts --compile --minify --target ${matrix.cross.target}
+        run: bun build src/hpm.ts --compile --minify --target=${{ matrix.cross.target }}
 
       - env:
           GITHUB_TOKEN: ${{ secrets.CI }}
