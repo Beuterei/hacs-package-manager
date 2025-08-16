@@ -1,6 +1,6 @@
 // Importing necessary modules and types
 import { InvalidHpmrcFileError } from './errors/invalid-hpmrc-file-error.exception';
-import type { BunFile } from 'bun';
+import { type BunFile } from 'bun';
 
 // Define the keys that are valid for runtime configuration
 const runtimeConfigurationKeys: Array<keyof RuntimeConfiguration> = ['gitHubToken'];
@@ -22,6 +22,15 @@ export const isRuntimeConfiguration = (object: unknown): object is RuntimeConfig
 
 // Class for managing the runtime configuration
 export class RuntimeConfigurationService {
+    // Singleton instance
+    private static instance: RuntimeConfigurationService;
+
+    // Current runtime configuration
+    private runtimeConfiguration?: RuntimeConfiguration;
+
+    // File object for the runtime configuration file
+    private readonly runtimeConfigurationFile: BunFile;
+
     // Private constructor to enforce singleton pattern
     private constructor() {
         const hpmRuntimeConfigurationFileName = '.hpmrc';
@@ -72,15 +81,6 @@ export class RuntimeConfigurationService {
 
         return runtimeConfiguration[key];
     }
-
-    // Singleton instance
-    private static instance: RuntimeConfigurationService;
-
-    // Current runtime configuration
-    private runtimeConfiguration?: RuntimeConfiguration;
-
-    // File object for the runtime configuration file
-    private readonly runtimeConfigurationFile: BunFile;
 
     // Method to set a specific key in the runtime configuration
     public async setRuntimeConfigurationKey(

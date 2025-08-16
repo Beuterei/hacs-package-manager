@@ -1,11 +1,10 @@
-import type { Defaults, HacsConfig } from './hacs';
+import { type Defaults, type HacsConfig } from './hacs';
 
-interface HpmDependencyBase {
-    category: keyof Defaults;
-    hacsConfig: HacsConfig;
-    ref: string;
-    refType: 'tag' | 'commit';
+export interface HpmDependencies {
+    [key: string]: HpmDependency;
 }
+
+export type HpmDependency = HpmDependencyFiles | HpmDependencyZipRelease;
 
 export interface HpmDependencyFiles extends HpmDependencyBase {
     remoteFiles: string[];
@@ -16,8 +15,9 @@ export interface HpmDependencyZipRelease extends HpmDependencyBase {
     releaseUrl: string;
 }
 
-export type HpmDependency = HpmDependencyZipRelease | HpmDependencyFiles;
-
-export interface HpmDependencies {
-    [key: string]: HpmDependency;
+interface HpmDependencyBase {
+    category: keyof Defaults;
+    hacsConfig: HacsConfig;
+    ref: string;
+    refType: 'commit' | 'tag';
 }

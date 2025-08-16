@@ -1,4 +1,4 @@
-import type { HpmDependency } from '../../shared/hpm';
+import { type HpmDependency } from '../../shared/hpm';
 
 export interface CategoryDependencyService {
     getLocalDependencyPath: (
@@ -10,10 +10,10 @@ export interface CategoryDependencyService {
     resolveDependencyArtifacts: (
         repositorySlug: string,
         ref: string,
-        refType: 'tag' | 'commit',
+        refType: 'commit' | 'tag',
         hacsConfig: HpmDependency['hacsConfig'],
     ) => Promise<
-        | { remoteFiles: string[] }
         | { localReferences: string[]; ref: string; refType: 'tag'; releaseUrl: string }
+        | { remoteFiles: string[] }
     >;
 }

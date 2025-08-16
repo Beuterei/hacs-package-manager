@@ -5,21 +5,21 @@ import {
 import { defineCommand, showUsage } from 'citty';
 
 const setCommand = defineCommand({
-    meta: {
-        name: 'set',
-        description: 'Set a configuration value',
-    },
     args: {
         key: {
             description: 'The key to set',
-            type: 'positional',
             required: true,
+            type: 'positional',
         },
         value: {
             description: 'The value to set',
-            type: 'positional',
             required: true,
+            type: 'positional',
         },
+    },
+    meta: {
+        description: 'Set a configuration value',
+        name: 'set',
     },
     run: async ({ args: { key, value } }) => {
         if (key === undefined || value === undefined) {
@@ -41,16 +41,16 @@ const setCommand = defineCommand({
 });
 
 const getCommand = defineCommand({
-    meta: {
-        name: 'get',
-        description: 'Get a configuration value',
-    },
     args: {
         key: {
             description: 'The key to get',
-            type: 'positional',
             required: false,
+            type: 'positional',
         },
+    },
+    meta: {
+        description: 'Get a configuration value',
+        name: 'get',
     },
     run: async ({ args: { key } }) => {
         const runtimeConfigurationService = RuntimeConfigurationService.getInstance();
@@ -73,11 +73,11 @@ const getCommand = defineCommand({
 
 export default defineCommand({
     meta: {
-        name: 'config',
         description: 'Configure the CLI',
+        name: 'config',
     },
     subCommands: {
-        set: setCommand,
         get: getCommand,
+        set: setCommand,
     },
 });

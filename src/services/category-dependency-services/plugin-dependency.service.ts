@@ -1,7 +1,7 @@
-import type { HpmDependency } from '../../shared/hpm';
+import { type HpmDependency } from '../../shared/hpm';
 import { NoCategoryFilesFoundError } from '../errors/no-category-files-found-error.exception';
 import { GitHubService } from '../github.service';
-import type { CategoryDependencyService } from './category-dependency-service.interface';
+import { type CategoryDependencyService } from './category-dependency-service.interface';
 
 export class PluginDependencyService implements CategoryDependencyService {
     public constructor(private gitHubService = new GitHubService()) {}
@@ -13,32 +13,32 @@ export class PluginDependencyService implements CategoryDependencyService {
     public async resolveDependencyArtifacts(
         repositorySlug: string,
         ref: string,
-        refType: 'tag' | 'commit',
+        refType: 'commit' | 'tag',
         hacsConfig: HpmDependency['hacsConfig'],
     ): Promise<
-        | { remoteFiles: string[] }
         | { localReferences: string[]; ref: string; refType: 'tag'; releaseUrl: string }
+        | { remoteFiles: string[] }
     > {
         let directoryListResponse: string[] = [];
 
         if (typeof hacsConfig.contentInRoot === 'boolean') {
             directoryListResponse = await this.gitHubService.resolveDirectory({
-                repositorySlug,
-                ref,
                 path: hacsConfig.contentInRoot ? '' : 'dist',
+                ref,
+                repositorySlug,
             });
         } else {
             directoryListResponse = await this.gitHubService.resolveDirectory({
-                repositorySlug,
-                ref,
                 path: 'dist',
+                ref,
+                repositorySlug,
             });
 
             if (directoryListResponse.length === 0) {
                 directoryListResponse = await this.gitHubService.resolveDirectory({
-                    repositorySlug,
-                    ref,
                     path: '',
+                    ref,
+                    repositorySlug,
                 });
             }
         }
@@ -54,7 +54,7 @@ export class PluginDependencyService implements CategoryDependencyService {
             );
         };
 
-        const filteredDirectoryListResponse = directoryListResponse.filter(file => {
+        const filteredDirectoryListResponse = directoryListResponse.filter((file) => {
             const fileName = file.split('/').pop() ?? '';
             return filterFileNames(fileName);
         });
@@ -70,12 +70,12 @@ export class PluginDependencyService implements CategoryDependencyService {
 
         const fetchReleaseArtifactAssets = (
             await this.gitHubService.fetchRelease({
-                repositorySlug,
                 ref: releaseRef,
+                repositorySlug,
             })
         ).assets;
 
-        const filteredAssets = fetchReleaseArtifactAssets.filter(asset =>
+        const filteredAssets = fetchReleaseArtifactAssets.filter((asset) =>
             filterFileNames(asset.name),
         );
 
@@ -84,10 +84,10 @@ export class PluginDependencyService implements CategoryDependencyService {
         }
 
         return {
-            releaseUrl: filteredAssets[0].browser_download_url,
+            localReferences: [filteredAssets[0].name],
             ref: releaseRef,
             refType: 'tag',
-            localReferences: [filteredAssets[0].name],
+            releaseUrl: filteredAssets[0].browser_download_url,
         };
     }
 }

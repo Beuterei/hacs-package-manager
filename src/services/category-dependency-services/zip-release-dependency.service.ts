@@ -1,4 +1,4 @@
-import type { HpmDependency } from '../../shared/hpm';
+import { type HpmDependency } from '../../shared/hpm';
 import { NoReleaseFileSpecifiedError } from '../errors/no-release-file-specified-error.exception';
 import { GitHubService } from '../github.service';
 import Zip from 'jszip';
@@ -9,7 +9,7 @@ export class ZipReleaseDependencyService {
     public async resolveDependencyArtifacts(
         repositorySlug: string,
         ref: string,
-        refType: 'tag' | 'commit',
+        refType: 'commit' | 'tag',
         hacsConfig: HpmDependency['hacsConfig'],
     ): Promise<{ localReferences: string[]; releaseUrl: string }> {
         const releaseFileName = hacsConfig.filename;
@@ -20,9 +20,9 @@ export class ZipReleaseDependencyService {
 
         const releaseUrl = (
             await this.gitHubService.fetchReleaseArtifact({
-                repositorySlug,
                 path: releaseFileName,
                 ref,
+                repositorySlug,
             })
         ).browser_download_url;
 
@@ -31,14 +31,14 @@ export class ZipReleaseDependencyService {
         const zip = await new Zip().loadAsync(zipArrayBuffer);
 
         const localReferences: string[] = [];
-        zip.forEach((relativePath, zipEntry) => {
-            if (zipEntry.dir) {
-                return;
+        for (const [relativePath, file] of Object.entries(zip.files)) {
+            if (file.dir) {
+                continue;
             }
 
             localReferences.push(relativePath);
-        });
+        }
 
-        return { releaseUrl, localReferences };
+        return { localReferences, releaseUrl };
     }
 }

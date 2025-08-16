@@ -1,11 +1,11 @@
 import { HacsConfigMapper } from '../mappers/hacsConfig.mapper';
 import { type Defaults, type HacsConfig, isRemoteHacsConfig } from '../shared/hacs';
-import type { HpmDependencies, HpmDependency } from '../shared/hpm';
+import { type HpmDependencies, type HpmDependency } from '../shared/hpm';
 import { constructSubDirectory } from '../util/dependency.helper';
 import { getFiles } from '../util/io.helper';
 import { CacheService } from './cache.service';
 import { AppdaemonDependencyService } from './category-dependency-services/appdaemon-dependency.service';
-import type { CategoryDependencyService } from './category-dependency-services/category-dependency-service.interface';
+import { type CategoryDependencyService } from './category-dependency-services/category-dependency-service.interface';
 import { IntegrationDependencyService } from './category-dependency-services/integration-dependency.service';
 import { NetdaemonDependencyService } from './category-dependency-services/netdaemon-dependency.service';
 import { PluginDependencyService } from './category-dependency-services/plugin-dependency.service';
@@ -45,6 +45,11 @@ export const categoryBasePaths: { [key in keyof Defaults]: string } = {
 };
 
 export class DependencyService {
+    public constructor(
+        private cacheService = CacheService.getInstance(),
+        private gitHubService = new GitHubService(),
+    ) {}
+
     public async addDependency(
         configPath: string,
         repositorySlug: string,
@@ -74,10 +79,10 @@ export class DependencyService {
         if (hacsConfig.zipRelease && category === 'integration') {
             const zipReleaseDependencyService = new ZipReleaseDependencyService();
             const zipReleaseHpmDependency: HpmDependency = {
-                ref,
-                refType,
                 category,
                 hacsConfig,
+                ref,
+                refType,
                 ...(await zipReleaseDependencyService.resolveDependencyArtifacts(
                     repositorySlug,
                     ref,
@@ -92,10 +97,10 @@ export class DependencyService {
         }
 
         const hpmDependency: HpmDependency = {
-            ref,
-            refType,
             category,
             hacsConfig,
+            ref,
+            refType,
             ...(await dependencyService.resolveDependencyArtifacts(
                 repositorySlug,
                 ref,
@@ -135,7 +140,8 @@ export class DependencyService {
             if (existsSync(`${haConfigPath}/${basePath}`)) {
                 if (basePath === categoryBasePaths.integration) {
                     const files = getFiles(`${haConfigPath}/${basePath}`).filter(
-                        file => !persistentDirectories.some(directory => file.includes(directory)),
+                        (file) =>
+                            !persistentDirectories.some((directory) => file.includes(directory)),
                     );
 
                     // TODO: Handle empty directories that are being left by this method
@@ -148,11 +154,6 @@ export class DependencyService {
             }
         }
     }
-
-    public constructor(
-        private cacheService = CacheService.getInstance(),
-        private gitHubService = new GitHubService(),
-    ) {}
 
     public async getCategory(repositorySlug: string): Promise<keyof Defaults> {
         const defaultsCache = await this.cacheService.getDefaultsCache();
@@ -189,9 +190,9 @@ export class DependencyService {
 
         try {
             const hacsConfigResponse = await this.gitHubService.fetchFile({
-                repositorySlug,
                 path: 'hacs.json',
                 ref,
+                repositorySlug,
             });
             parsedHacsConfig = JSON.parse(atob(hacsConfigResponse.content));
         } catch (error) {
@@ -215,7 +216,7 @@ export class DependencyService {
     public async getRefAndType(
         repositorySlug: string,
         unresolvedRef?: string,
-    ): Promise<{ ref: string; refType: 'tag' | 'commit'; resolvedFromDefaultBranch?: true }> {
+    ): Promise<{ ref: string; refType: 'commit' | 'tag'; resolvedFromDefaultBranch?: true }> {
         // If the unresolved reference is not provided
         if (!unresolvedRef) {
             // Check if the repository has any releases
@@ -249,7 +250,7 @@ export class DependencyService {
         }
 
         // If the matched reference is not a head, return the matched reference and its type
-        return { refType: matchedRef.matchedRefType, ref: matchedRef.matchedRef };
+        return { ref: matchedRef.matchedRef, refType: matchedRef.matchedRefType };
     }
 
     public async installDependency(
@@ -278,9 +279,9 @@ export class DependencyService {
                 mkdirSync(localDependencyPath, { recursive: true });
 
                 const remoteFile = await this.gitHubService.fetchFile({
-                    repositorySlug,
                     path: file,
                     ref: hpmDependency.ref,
+                    repositorySlug,
                 });
 
                 await Bun.write(
@@ -312,7 +313,7 @@ export class DependencyService {
                         continue;
                     }
 
-                    const content = await zipEntry.async('nodebuffer');
+                    const content = await zipEntry.async('arraybuffer');
 
                     await Bun.write(`${localDependencyPath}/${relativePath}`, content);
                 }

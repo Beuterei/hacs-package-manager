@@ -1,5 +1,5 @@
 // Importing necessary modules and types
-import type { Defaults } from '../shared/hacs';
+import { type Defaults } from '../shared/hacs';
 import { parseJsonToStringArray } from '../util/json.helper';
 import { GitHubService } from './github.service';
 import { mkdir } from 'fs/promises';
@@ -30,11 +30,20 @@ export const isDefaultsCache = (object: unknown): object is DefaultsCache =>
     'defaults' in object &&
     typeof object.defaults === 'object' &&
     object.defaults !== null &&
-    Object.keys(defaultsRepoFilePathMap).every(key => key in (object.defaults as object));
+    Object.keys(defaultsRepoFilePathMap).every((key) => key in (object.defaults as object));
 
 // Defining the CacheService class
 export class CacheService {
+    // Property to store the CacheService instance
+    private static instance: CacheService;
+
     private readonly cachePath: string;
+
+    // Property to store the defaults cache
+    private defaultsCache?: DefaultsCache;
+
+    // Property for the defaults cache file name
+    private defaultsCacheFileName = 'defaults.json';
 
     // Constructor for the CacheService class
     private constructor(private gitHubService = new GitHubService()) {
@@ -45,61 +54,14 @@ export class CacheService {
                 : `${Bun.env.HOME}/${cacheDirectoryName}/`;
     }
 
-    // Method to create a defaults cache
-    private async createDefaultsCache(): Promise<void> {
-        const cacheFile = this.cachePath + this.defaultsCacheFileName;
-        await this.ensureCachePath();
+    // Method to get an instance of CacheService
+    public static getInstance = (): CacheService => {
+        if (!CacheService.instance) {
+            CacheService.instance = new CacheService();
+        }
 
-        // Fetching the defaults
-        const defaults = await Promise.all([
-            this.fetchDefault('appdaemon'),
-            this.fetchDefault('integration'),
-            this.fetchDefault('netdaemon'),
-            this.fetchDefault('plugin'),
-            this.fetchDefault('pythonScript'),
-            this.fetchDefault('template'),
-            this.fetchDefault('theme'),
-        ]);
-
-        // Creating the cache
-        const cache: DefaultsCache = {
-            timestamp: new Date().toISOString(),
-            defaults: {
-                appdaemon: defaults[0],
-                integration: defaults[1],
-                netdaemon: defaults[2],
-                plugin: defaults[3],
-                pythonScript: defaults[4],
-                template: defaults[5],
-                theme: defaults[6],
-            },
-        };
-
-        // Writing the cache to a file
-        await Bun.write(cacheFile, JSON.stringify(cache));
-
-        this.defaultsCache = cache;
-    }
-
-    // Property to store the defaults cache
-    private defaultsCache?: DefaultsCache;
-
-    // Property for the defaults cache file name
-    private defaultsCacheFileName = 'defaults.json';
-
-    // Method to ensure the cache path exists
-    private async ensureCachePath(): Promise<void> {
-        await mkdir(this.cachePath, { recursive: true });
-    }
-
-    // Method to fetch a default
-    private async fetchDefault(uriMapKey: keyof Defaults): Promise<string[]> {
-        const response = await this.gitHubService.fetchFile({
-            repositorySlug: 'hacs/default',
-            path: defaultsRepoFilePathMap[uriMapKey],
-        });
-        return parseJsonToStringArray(atob(response.content));
-    }
+        return CacheService.instance;
+    };
 
     public async getCachePath() {
         await this.ensureCachePath();
@@ -146,15 +108,53 @@ export class CacheService {
         return this.defaultsCache as unknown as DefaultsCache;
     }
 
-    // Method to get an instance of CacheService
-    public static getInstance = (): CacheService => {
-        if (!CacheService.instance) {
-            CacheService.instance = new CacheService();
-        }
+    // Method to create a defaults cache
+    private async createDefaultsCache(): Promise<void> {
+        const cacheFile = this.cachePath + this.defaultsCacheFileName;
+        await this.ensureCachePath();
 
-        return CacheService.instance;
-    };
+        // Fetching the defaults
+        const defaults = await Promise.all([
+            this.fetchDefault('appdaemon'),
+            this.fetchDefault('integration'),
+            this.fetchDefault('netdaemon'),
+            this.fetchDefault('plugin'),
+            this.fetchDefault('pythonScript'),
+            this.fetchDefault('template'),
+            this.fetchDefault('theme'),
+        ]);
 
-    // Property to store the CacheService instance
-    private static instance: CacheService;
+        // Creating the cache
+        const cache: DefaultsCache = {
+            defaults: {
+                appdaemon: defaults[0],
+                integration: defaults[1],
+                netdaemon: defaults[2],
+                plugin: defaults[3],
+                pythonScript: defaults[4],
+                template: defaults[5],
+                theme: defaults[6],
+            },
+            timestamp: new Date().toISOString(),
+        };
+
+        // Writing the cache to a file
+        await Bun.write(cacheFile, JSON.stringify(cache));
+
+        this.defaultsCache = cache;
+    }
+
+    // Method to ensure the cache path exists
+    private async ensureCachePath(): Promise<void> {
+        await mkdir(this.cachePath, { recursive: true });
+    }
+
+    // Method to fetch a default
+    private async fetchDefault(uriMapKey: keyof Defaults): Promise<string[]> {
+        const response = await this.gitHubService.fetchFile({
+            path: defaultsRepoFilePathMap[uriMapKey],
+            repositorySlug: 'hacs/default',
+        });
+        return parseJsonToStringArray(atob(response.content));
+    }
 }

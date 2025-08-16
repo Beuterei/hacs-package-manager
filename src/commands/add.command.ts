@@ -4,18 +4,18 @@ import { Spinner } from '../util/spinner.helper';
 import { defineCommand } from 'citty';
 
 export default defineCommand({
-    meta: {
-        name: 'add [DEPENDENCIES...]',
-        description: 'Adds a particular package or multiple packages to home assistant',
-    },
     args: {
         configPath: {
-            description: 'Path to the hpm.json file relative to the current working directory.',
-            type: 'string',
             alias: 'c',
             default: 'hpm.json',
+            description: 'Path to the hpm.json file relative to the current working directory.',
             required: false,
+            type: 'string',
         },
+    },
+    meta: {
+        description: 'Adds a particular package or multiple packages to home assistant',
+        name: 'add [DEPENDENCIES...]',
     },
     run: async ({ args: { _, configPath } }) => {
         const dependencies = _;

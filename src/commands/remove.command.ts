@@ -4,28 +4,28 @@ import { Spinner } from '../util/spinner.helper';
 import { defineCommand } from 'citty';
 
 export default defineCommand({
-    meta: {
-        name: 'remove [DEPENDENCIES...]',
-        description: 'Removes a particular package or multiple packages from home assistant',
-    },
     args: {
-        haConfigPath: {
-            description:
-                'Path where to install dependencies relative to the current working directory.',
-            type: 'string',
-            alias: 'a',
-            default: process.cwd(),
-            required: false,
-        },
         configPath: {
-            description: 'Path to the hpm.json file relative to the current working directory.',
-            type: 'string',
             alias: 'c',
             default: `${process.cwd()}/hpm.json`,
+            description: 'Path to the hpm.json file relative to the current working directory.',
             required: false,
+            type: 'string',
+        },
+        haConfigPath: {
+            alias: 'a',
+            default: process.cwd(),
+            description:
+                'Path where to install dependencies relative to the current working directory.',
+            required: false,
+            type: 'string',
         },
     },
-    run: async ({ args: { _, haConfigPath, configPath } }) => {
+    meta: {
+        description: 'Removes a particular package or multiple packages from home assistant',
+        name: 'remove [DEPENDENCIES...]',
+    },
+    run: async ({ args: { _, configPath, haConfigPath } }) => {
         const repositorySlugs = _;
 
         const dependencyService = new DependencyService();
