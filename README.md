@@ -226,6 +226,25 @@ hpm config get [OPTIONS]
 
 - `KEY`: The key to get
 
+#### Environment Variable Overrides
+
+Configuration values can be overridden using environment variables. This is particularly useful for:
+
+- CI/CD environments
+- Docker containers
+- Automated deployments
+- Keeping sensitive tokens out of configuration files
+
+Environment variables follow the naming convention `HPM_<CONFIG_KEY>` where `<CONFIG_KEY>` is the uppercase version of the configuration key.
+
+**Available environment variables:**
+
+- `HPM_GITHUB_TOKEN`: Overrides the `gitHubToken` configuration value
+
+**Priority:** Environment variables take precedence over file-based configuration. When both are present, the environment variable value will be used.
+
+**Note:** Environment variable overrides are read-only. Setting configuration values with `hpm config set` will only update the file-based configuration and will not affect environment variables.
+
 ### Remove a dependency
 
 Removes a particular package or multiple packages from home assistant.

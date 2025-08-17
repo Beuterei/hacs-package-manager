@@ -14,6 +14,11 @@ export interface RuntimeConfiguration {
     gitHubToken?: string; // GitHub token for authentication
 }
 
+// Define the mapping between configuration keys and their corresponding environment variable names
+const environmentVariableMap: Record<keyof RuntimeConfiguration, `HPM_${string}`> = {
+    gitHubToken: 'HPM_GITHUB_TOKEN',
+};
+
 // Type guard to check if an object is a valid runtime configuration
 export const isRuntimeConfiguration = (object: unknown): object is RuntimeConfiguration =>
     typeof object === 'object' &&
@@ -54,8 +59,10 @@ export class RuntimeConfigurationService {
     // Method to get the runtime configuration
     public async getRuntimeConfiguration(): Promise<RuntimeConfiguration> {
         if (this.runtimeConfiguration) {
-            return this.runtimeConfiguration;
+            return this.applyEnvironmentVariableOverrides(this.runtimeConfiguration);
         }
+
+        let fileConfiguration: RuntimeConfiguration = {};
 
         // If the configuration file exists, read it and parse it
         if (await this.runtimeConfigurationFile.exists()) {
@@ -64,13 +71,13 @@ export class RuntimeConfigurationService {
                 throw new InvalidHpmrcFileError();
             }
 
-            this.runtimeConfiguration = cache;
-
-            return this.runtimeConfiguration;
+            fileConfiguration = cache;
         }
 
-        // If the configuration file does not exist, return an empty configuration
-        return {};
+        this.runtimeConfiguration = fileConfiguration;
+
+        // Apply environment variable overrides to the file configuration
+        return this.applyEnvironmentVariableOverrides(this.runtimeConfiguration);
     }
 
     // Method to get a specific key from the runtime configuration
@@ -87,13 +94,33 @@ export class RuntimeConfigurationService {
         key: keyof RuntimeConfiguration,
         value: string,
     ): Promise<void> {
-        const runtimeConfiguration = await this.getRuntimeConfiguration();
-        runtimeConfiguration[key] = value;
+        // Ensure we have loaded the file configuration
+        await this.getRuntimeConfiguration();
+
+        // Update the file configuration (not the environment-overridden one)
+        this.runtimeConfiguration ??= {};
+
+        this.runtimeConfiguration[key] = value;
 
         // Write the updated configuration back to the file
         await Bun.write(
             this.runtimeConfigurationFile,
-            JSON.stringify(runtimeConfiguration, null, 2),
+            JSON.stringify(this.runtimeConfiguration, null, 2),
         );
+    }
+
+    // Private method to apply environment variable overrides to the configuration
+    private applyEnvironmentVariableOverrides(config: RuntimeConfiguration): RuntimeConfiguration {
+        const result = { ...config };
+
+        // Check each configuration key for corresponding environment variables
+        for (const [key, environmentVariable] of Object.entries(environmentVariableMap)) {
+            const environmentValue = Bun.env[environmentVariable];
+            if (environmentValue) {
+                result[key as keyof RuntimeConfiguration] = environmentValue;
+            }
+        }
+
+        return result;
     }
 }
